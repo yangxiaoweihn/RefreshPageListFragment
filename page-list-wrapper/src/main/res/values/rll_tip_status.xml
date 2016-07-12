@@ -1,0 +1,18 @@
+<resources>
+    <!-- refresh list library -->
+
+    <!-- 加载更多时，footer状态提示信息 -->
+    <array name="rll_load_status">
+        <!-- 加载前 -->
+        <item>加载更多</item>
+        <!-- 加载中 -->
+        <item>正在加载...</item>
+        <!-- 全部已加载 -->
+        <item>数据已全部加载完成</item>
+    </array>
+
+    <!-- 空白页状态信息 -->
+    <string name="rll_tips_data_empty">暂无数据</string>
+    <string name="rll_tips_data_initloading">正在努力加载中。。。</string>
+    <string name="rll_tips_data_exception">网络有点小卡</string>
+</resources>
