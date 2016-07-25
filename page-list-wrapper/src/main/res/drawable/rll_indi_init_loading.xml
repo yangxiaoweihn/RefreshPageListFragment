@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animation-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:duration="250">
+        <layer-list>
+            <item android:right="30dp">
+                <shape>
+                    <corners android:radius="100dp" />
+                    <solid android:color="#08f" />
+                    <size
+                        android:width="10dp"
+                        android:height="10dp" />
+                </shape>
+            </item>
+            <item
+                android:left="15dp"
+                android:right="15dp">
+                <shape>
+                    <corners android:radius="100dp" />
+                    <solid android:color="#004f" />
+                    <size
+                        android:width="10dp"
+                        android:height="10dp" />
+                </shape>
+            </item>
+            <item android:left="30dp">
+                <shape>
+                    <corners android:radius="100dp" />
+                    <solid android:color="#000f" />
+                    <size
+                        android:width="10dp"
+                        android:height="10dp" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    <item android:duration="250">
+        <layer-list>
+            <item android:right="30dp">
+                <shape>
+                    <corners android:radius="100dp" />
+                    <solid android:color="#008f" />
+                    <size
+                        android:width="10dp"
+                        android:height="10dp" />
+                </shape>
+            </item>
+            <item
+                android:left="15dp"
+                android:right="15dp">
+                <shape>
+                    <corners android:radius="100dp" />
+                    <solid android:color="#04f" />
+                    <size
+                        android:width="10dp"
+                        android:height="10dp" />
+                </shape>
+            </item>
+            <item android:left="30dp">
+                <shape>
+                    <corners android:radius="100dp" />
+                    <solid android:color="#00ff" />
+                    <size
+                        android:width="10dp"
+                        android:height="10dp" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    <item android:duration="250">
+        <layer-list>
+            <item android:right="30dp">
+                <shape>
+                    <corners android:radius="100dp" />
+                    <solid android:color="#008f" />
+                    <size
+                        android:width="10dp"
+                        android:height="10dp" />
+                </shape>
+            </item>
+            <item
+                android:left="15dp"
+                android:right="15dp">
+                <shape>
+                    <corners android:radius="100dp" />
+                    <solid android:color="#004f" />
+                    <size
+                        android:width="10dp"
+                        android:height="10dp" />
+                </shape>
+            </item>
+            <item android:left="30dp">
+                <shape>
+                    <corners android:radius="100dp" />
+                    <solid android:color="#00f" />
+                    <size
+                        android:width="10dp"
+                        android:height="10dp" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+</animation-list>

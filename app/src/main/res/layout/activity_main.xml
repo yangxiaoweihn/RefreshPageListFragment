@@ -17,4 +17,12 @@
         android:layout_height="wrap_content"
         android:onClick="libsTestOnClick"
         android:text="libsTestOnClick" />
+
+    <ImageView
+        android:layout_marginTop="130dp"
+        android:layout_gravity="center"
+        android:id="@id/rll_empty_iv_id"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        />
 </LinearLayout>

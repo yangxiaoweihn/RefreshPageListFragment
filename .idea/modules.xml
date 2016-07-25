@@ -5,6 +5,7 @@
       <module fileurl="file://$PROJECT_DIR$/RefreshPageListFragment.iml" filepath="$PROJECT_DIR$/RefreshPageListFragment.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
       <module fileurl="file://$PROJECT_DIR$/page-list-wrapper/library.iml" filepath="$PROJECT_DIR$/page-list-wrapper/library.iml" />
+      <module fileurl="file://$PROJECT_DIR$/page-list-wrapper/page-list-wrapper.iml" filepath="$PROJECT_DIR$/page-list-wrapper/page-list-wrapper.iml" />
     </modules>
   </component>
 </project>

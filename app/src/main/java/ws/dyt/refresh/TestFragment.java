@@ -15,6 +15,12 @@ import ws.dyt.view.viewholder.BaseViewHolder;
  */
 public class TestFragment extends BasePageListFragment<String, String> {
 
+
+    @Override
+    protected void setUpViewBeforeSetAdapter() {
+
+    }
+
     @Override
     protected RecyclerView.LayoutManager setLayoutManager() {
         LinearLayoutManager llm = new LinearLayoutManager(getContext());
@@ -38,23 +44,23 @@ public class TestFragment extends BasePageListFragment<String, String> {
         return PAGE_SIZE;
     }
 
-    int kk = 0;
     int current = 0;
     @Override
     protected void fetchData(int index) {
-        List<String> data = this.generate(index);
-        if (kk % 2 == 0) {
-            current += data.size();
-            setOnSuccessPath(new ResponseResultWrapper<String>(0, "Success", data));
-        }else {
-            setOnSuccessPath(new ResponseResultWrapper<String>(9, "XXX", data));
+        if (isError) {
+            setOnSuccessPath(new ResponseResultWrapper<String>(9, "XXX", null));
+            return;
         }
-//        kk++;
+        List<String> data = this.generate(index);
+        current += data.size();
+        setOnSuccessPath(new ResponseResultWrapper<String>(0, "Success", data));
     }
 
-    int all = 44;
     private List<String> generate(int pre) {
-        int r = all - current;
+        if (0 == pre) {
+            current = 0;
+        }
+        int r = dataCount - current;
         r =  r >= PAGE_SIZE ? PAGE_SIZE : r;
         List<String> data = new ArrayList<>();
         for (int i = 1; i <= r; i++) {
@@ -62,6 +68,26 @@ public class TestFragment extends BasePageListFragment<String, String> {
         }
         return data;
     }
+
+
+    private int dataCount = 5;
+    /**
+     * 模拟总数据量
+     * @return
+     */
+    protected void amulatorDataCounts(int dataCount) {
+        this.dataCount = dataCount;
+    }
+
+    private boolean isError = false;
+    /**
+     * 模拟网络异常
+     * @return
+     */
+    protected void amulatorError(boolean isError) {
+        this.isError = isError;
+    }
+
 
     @Override
     protected List<String> convertData(List<String> datas) {

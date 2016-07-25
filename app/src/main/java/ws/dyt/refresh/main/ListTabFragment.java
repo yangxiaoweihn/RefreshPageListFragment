@@ -51,11 +51,37 @@ public class ListTabFragment extends Fragment {
 
         List<String> titles = new ArrayList<>();
         List<Fragment> fragments = new ArrayList<>();
-        for (int i = 1; i <= 10; i++) {
-            String title = "模块 "+i;
-            titles.add(title);
-            fragments.add(NewsTabFragment.newInstance(title));
-        }
+
+//        for (int i = 1; i <= 10; i++) {
+//            String title = "模块 "+i;
+//            titles.add(title);
+//            fragments.add(NewsTabFragment.newInstance(title));
+//        }
+
+        String title = "模块 1";
+        titles.add(title);
+        fragments.add(NewsTabFragment.newInstance(0, false, title));
+
+        title = "模块 2";
+        titles.add(title);
+        fragments.add(NewsTabFragment.newInstance(4, false, title));
+
+        title = "模块 3";
+        titles.add(title);
+        fragments.add(NewsTabFragment.newInstance(10, false, title));
+
+        title = "模块 4";
+        titles.add(title);
+        fragments.add(NewsTabFragment.newInstance(15, false, title));
+
+        title = "模块 5";
+        titles.add(title);
+        fragments.add(NewsTabFragment.newInstance(20, false, title));
+
+        title = "模块 6";
+        titles.add(title);
+        fragments.add(NewsTabFragment.newInstance(0, true, title));
+
 
         viewPager.setOffscreenPageLimit(titles.size());
 

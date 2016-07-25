@@ -31,6 +31,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.List;
 
+import ws.dyt.pagelist.entity.PageIndex;
 import ws.dyt.pagelist.utils.ViewInject;
 import ws.dyt.view.adapter.MultiAdapter;
 import ws.dyt.pagelist.R;
@@ -41,7 +42,7 @@ import ws.dyt.pagelist.R;
  * @param <T_ADAPTER>   适配器装载的数据（有可能真实的数据里会添加一些别的数据进去显示）
  */
 abstract
-public class BasePageListFragment<T_RESPONSE, T_ADAPTER> extends BasePageFragment implements ResponseResultDelegate<T_RESPONSE, T_ADAPTER>, DataStatusDelegate{
+public class BasePageListFragment<T_RESPONSE extends PageIndex, T_ADAPTER> extends BasePageFragment implements ResponseResultDelegate<T_RESPONSE, T_ADAPTER>, DataStatusDelegate{
     private static final String TAG = "lib_BaseListFragment";
 
     protected RecyclerView recyclerView;
@@ -102,7 +103,7 @@ public class BasePageListFragment<T_RESPONSE, T_ADAPTER> extends BasePageFragmen
 
         //初始加载显示时图标[可以是一个动画]
         @DrawableRes
-        public int DrawableResOfInitLoading;
+        public int DrawableResOfInitLoading = R.drawable.rll_indi_init_loading;
         //初始加载显示时文字提示
         @StringRes
         public int TextResOfInitLoading = R.string.rll_tips_data_initloading;
@@ -134,9 +135,11 @@ public class BasePageListFragment<T_RESPONSE, T_ADAPTER> extends BasePageFragmen
      */
     public static class LoadMoreStatusViewWrapper {
         //加载状态布局[作为recyclerview的footer]
-        public @LayoutRes int LayoutResOfLoadMoreStatusView = R.layout.rll_view_loadmore_footer;
+        @LayoutRes
+        public int LayoutResOfLoadMoreStatusView = R.layout.rll_view_loadmore_footer;
         //加载状态提示信息[总共3种状态，必须]
         public String[] TextTipsOfLoadingStatus;
+
         //所有数据加载完毕时是否显示加载完毕状态
         public boolean IsShowStatusWhenAllDataDidLoad = false;
         //下拉刷新时是否显示加载状态[true: 将会添加状态footer]
@@ -144,7 +147,10 @@ public class BasePageListFragment<T_RESPONSE, T_ADAPTER> extends BasePageFragmen
 
 
         @Retention(RetentionPolicy.SOURCE)
-        @IntDef({StatusWrapper.LOAD_PRE, StatusWrapper.LOAD_ING, StatusWrapper.LOAD_END})
+        @IntDef({
+                StatusWrapper.LOAD_PRE,
+                StatusWrapper.LOAD_ING,
+                StatusWrapper.LOAD_END})
         @interface StatusWrapperWhere {}
         public String getStatusByCode(@StatusWrapperWhere int code) {
             if (null == this.TextTipsOfLoadingStatus || this.TextTipsOfLoadingStatus.length != 3) {
@@ -188,7 +194,7 @@ public class BasePageListFragment<T_RESPONSE, T_ADAPTER> extends BasePageFragmen
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        this.rootView = inflater.inflate(R.layout.base_refresh_fragment, container, false);
+        this.rootView = inflater.inflate(R.layout.rll_fragment_recyclerview_refresh, container, false);
         this.sectionEmptyView = ViewInject.findView(R.id.section_empty, rootView);
         this.recyclerView = ViewInject.findView(R.id.recyclerView, rootView);
         this.refreshLayout = ViewInject.findView(R.id.refreshLayout, rootView);
@@ -264,7 +270,6 @@ public class BasePageListFragment<T_RESPONSE, T_ADAPTER> extends BasePageFragmen
             } else if (lm instanceof LinearLayoutManager) {
                 mLastVisibleItem = ((LinearLayoutManager) lm).findLastVisibleItemPosition();
             }
-
         }
     };
     /**
@@ -283,10 +288,6 @@ public class BasePageListFragment<T_RESPONSE, T_ADAPTER> extends BasePageFragmen
         this.adapter.setSysFooterView(footerView);
         this.loadMoreProgressBar = ViewInject.findView(R.id.rll_load_more_progress_id, footerView);
         this.loadMoreTextView = ViewInject.findView(R.id.rll_load_more_tv_id, footerView);
-//        this.loadMoreTextView.setText(loadMoreStatusViewWrapper.getStatusByCode(LoadMoreStatusViewWrapper.StatusWrapper.LOAD_PRE));//"加载更多"
-//        if (null != loadMoreProgressBar) {
-//            this.loadMoreProgressBar.setVisibility(View.GONE);
-//        }
 
         this.loadMorePre();
 
@@ -335,26 +336,20 @@ public class BasePageListFragment<T_RESPONSE, T_ADAPTER> extends BasePageFragmen
         }
         this.emptyInitLoading();
         Log.d(TAG, "pullDown()");
-        this.mVisibleLastIndex = 0;
+        this.pageStartIndex = 0;
         this.isRequestEnd = false;
         this.isAllDataDidLoad = false;
         if (this.loadMoreStatusViewWrapper.IsShowStatusWhenRefresh) {
             if (null == footerView) {
                 this.initLoadMoreView();
             }
-//            if (null != footerView) {
-//                this.loadMoreTextView.setText(loadMoreStatusViewWrapper.getStatusByCode(LoadMoreStatusViewWrapper.StatusWrapper.LOAD_ING));//"正在加载。。。"
-//            }
-//            if (null != footerView && null != loadMoreProgressBar) {
-//                this.loadMoreProgressBar.setVisibility(View.VISIBLE);
-//            }
             this.loadMoreIng();
         }
 
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
-                fetchData(mVisibleLastIndex);
+                fetchData(pageStartIndex);
             }
         }, delayTest);
     }
@@ -368,18 +363,12 @@ public class BasePageListFragment<T_RESPONSE, T_ADAPTER> extends BasePageFragmen
         Log.d(TAG, "pullUp()");
         this.isRequestEnd = false;
 
-//        if (null != footerView) {
-//            this.loadMoreTextView.setText(loadMoreStatusViewWrapper.getStatusByCode(LoadMoreStatusViewWrapper.StatusWrapper.LOAD_ING));//"正在加载。。。"
-//        }
-//        if (null != footerView && null != loadMoreProgressBar) {
-//            this.loadMoreProgressBar.setVisibility(View.VISIBLE);
-//        }
         this.loadMoreIng();
 
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
-                fetchData(mVisibleLastIndex);
+                fetchData(pageStartIndex);
             }
         }, delayTest);
     }
@@ -400,7 +389,8 @@ public class BasePageListFragment<T_RESPONSE, T_ADAPTER> extends BasePageFragmen
     //是否数据已经全部加载完毕
     private boolean isAllDataDidLoad = false;
 
-    private int mVisibleLastIndex = 0;
+    //分页其实索引id
+    private int pageStartIndex = 0;
 
     /**{@link ResponseResultDelegate}
      * ---------------------------------------------------------------------------*/
@@ -419,12 +409,6 @@ public class BasePageListFragment<T_RESPONSE, T_ADAPTER> extends BasePageFragmen
 
     private void setOnSuccessPath_(ResponseResultWrapper<T_RESPONSE> result) {
         this.isRequestEnd = true;
-//        if (null != footerView) {
-//            this.loadMoreTextView.setText(loadMoreStatusViewWrapper.getStatusByCode(LoadMoreStatusViewWrapper.StatusWrapper.LOAD_PRE));//"加载更多"
-//        }
-//        if (null != loadMoreProgressBar) {
-//            this.loadMoreProgressBar.setVisibility(View.GONE);
-//        }
         this.loadMorePre();
 
         if (null == result || result.StatusCode != 0) {
@@ -436,10 +420,11 @@ public class BasePageListFragment<T_RESPONSE, T_ADAPTER> extends BasePageFragmen
         }
 
         final List<T_RESPONSE> datas = null == result.Data ? new ArrayList<T_RESPONSE>() : result.Data;
-        int count = datas.size();
+        final int count = datas.size();
+        final int empIndexId = count == 0 ? 0 : datas.get(count - 1).getIndexId();
 
         //下拉刷新
-        if (0 == mVisibleLastIndex) {
+        if (0 == pageStartIndex) {
             this.adapter.clear();
         }
 
@@ -453,7 +438,7 @@ public class BasePageListFragment<T_RESPONSE, T_ADAPTER> extends BasePageFragmen
             this.onNoData();
         }else {
             this.sectionEmptyView.setVisibility(View.GONE);
-            if (0 == mVisibleLastIndex) {
+            if (0 == pageStartIndex) {
                 this.adapter.notifyDataSetChanged();
             }
             if (null == footerView) {
@@ -464,10 +449,6 @@ public class BasePageListFragment<T_RESPONSE, T_ADAPTER> extends BasePageFragmen
             if (count < setPageSize()) {
                 this.isAllDataDidLoad = true;
                 if (this.loadMoreStatusViewWrapper.IsShowStatusWhenAllDataDidLoad) {
-//                    this.loadMoreTextView.setText(loadMoreStatusViewWrapper.getStatusByCode(LoadMoreStatusViewWrapper.StatusWrapper.LOAD_END));//"数据已全部加载完成"
-//                    if (null != loadMoreProgressBar) {
-//                        this.loadMoreProgressBar.setVisibility(View.GONE);
-//                    }
                     this.loadMoreEndWithAllDataDidLoad();
 
                 }else {
@@ -479,19 +460,13 @@ public class BasePageListFragment<T_RESPONSE, T_ADAPTER> extends BasePageFragmen
             this.adapter.addAll(convertData(datas));
         }
 
-        this.mVisibleLastIndex += count;
+        this.pageStartIndex = empIndexId;
         this.refreshLayout.setRefreshing(false);
     }
 
     private void setOnFailurePath_() {
         this.isRequestEnd = true;
         this.refreshLayout.setRefreshing(false);
-//        if (null != footerView) {
-//            this.loadMoreTextView.setText(loadMoreStatusViewWrapper.getStatusByCode(LoadMoreStatusViewWrapper.StatusWrapper.LOAD_PRE));//"加载更多"
-//        }
-//        if (null != loadMoreProgressBar) {
-//            this.loadMoreProgressBar.setVisibility(View.GONE);
-//        }
         this.loadMorePre();
 
         //exception
@@ -503,26 +478,31 @@ public class BasePageListFragment<T_RESPONSE, T_ADAPTER> extends BasePageFragmen
     private boolean isFirstInited = false;
     private void emptyInitLoading() {
         //只有初次加载时显示[如果配置初次显示的话]
-        if (isFirstInited) {
+        if (this.isFirstInited) {
             return;
         }
         this.tvEmtpy.setText(this.emptyStatusViewWrapper.TextResOfInitLoading);
         this.ivEmpty.setImageResource(this.emptyStatusViewWrapper.DrawableResOfInitLoading);
         this.sectionEmptyView.setVisibility(this.emptyStatusViewWrapper.IsShowEmptyViewBeforeInitLoading ? View.VISIBLE : View.GONE);
         this.isFirstInited = true;
+
         Drawable drawable = this.ivEmpty.getDrawable();
-        if (null != drawable && drawable instanceof AnimationDrawable) {
+        if (null == drawable) {
+            return;
+        }
+        if (drawable instanceof AnimationDrawable) {
             AnimationDrawable ad = (AnimationDrawable) drawable;
             if(ad.isRunning()) {
                 ad.stop();
             }
             ad.start();
+            return;
         }
     }
 
     private void emptyException() {
         //只有在列表中没有数据项时[不包括 XX-header XX-footer]
-        if (adapter.getDataSectionItemCount() != 0) {
+        if (this.adapter.getDataSectionItemCount() != 0) {
             return;
         }
         this.tvEmtpy.setText(this.emptyStatusViewWrapper.TextResOfException);
@@ -561,27 +541,6 @@ public class BasePageListFragment<T_RESPONSE, T_ADAPTER> extends BasePageFragmen
         toast("数据已全部加载完成");
     }
     /**---------------------------------------------------------------------------*/
-
-    /**
-     * 数据设置
-     */
-    @Deprecated
-    protected static class Settings{
-        //所有数据加载完毕时是否显示加载完毕状态
-        public boolean isShowStatusWhenAllDataDidLoad = false;
-        //下拉刷新时是否显示加载状态 true: 将会添加状态footer
-        public boolean isShowStatusWhenRefresh = true;
-        //设置每次请求数据条数
-        public int pageSize = 50;
-        //数据加载时状态控件布局(footer)
-        public @LayoutRes int loadingStatusLayoutId = 0;
-    }
-
-    private Settings settings = new Settings();
-    protected void configSettings(Settings settings) {
-
-    }
-
 
     private void toast(String toast) {
         Toast.makeText(getContext(), toast, Toast.LENGTH_SHORT).show();
