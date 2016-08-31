@@ -3,12 +3,9 @@ package ws.dyt.refresh.sub;
 
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.TextView;
 
-import ws.dyt.pagelist.ui.BasePageListFragment;
+import ws.dyt.pagelist.config.EmptyStatusViewWrapper;
+import ws.dyt.pagelist.config.LoadMoreStatusViewWrapper;
 import ws.dyt.refresh.R;
 import ws.dyt.refresh.TestFragment;
 

@@ -1,40 +1,31 @@
 package ws.dyt.pagelist.ui;
 
 
-import android.graphics.drawable.AnimationDrawable;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.CallSuper;
-import android.support.annotation.DrawableRes;
-import android.support.annotation.IntDef;
-import android.support.annotation.LayoutRes;
-import android.support.annotation.StringRes;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.FrameLayout;
-import android.widget.ImageView;
-import android.widget.ProgressBar;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.List;
 
+import ws.dyt.pagelist.R;
+import ws.dyt.pagelist.config.EmptyStatusViewWrapper;
+import ws.dyt.pagelist.config.LoadMoreStatusViewWrapper;
+import ws.dyt.pagelist.controller.EmptyViewController;
+import ws.dyt.pagelist.controller.LoadMoreStatusViewController;
 import ws.dyt.pagelist.entity.PageIndex;
 import ws.dyt.pagelist.utils.ViewInject;
-import ws.dyt.view.adapter.MultiAdapter;
-import ws.dyt.pagelist.R;
+import ws.dyt.view.adapter.SuperAdapter;
 
 
 /**
@@ -42,16 +33,15 @@ import ws.dyt.pagelist.R;
  * @param <T_ADAPTER>   适配器装载的数据（有可能真实的数据里会添加一些别的数据进去显示）
  */
 abstract
-public class BasePageListFragment<T_RESPONSE extends PageIndex, T_ADAPTER> extends BasePageFragment implements ResponseResultDelegate<T_RESPONSE, T_ADAPTER>, DataStatusDelegate{
+public class BasePageListFragment<T_RESPONSE extends PageIndex, T_ADAPTER> extends BasePageFragment
+        implements ResponseResultDelegate<T_RESPONSE, T_ADAPTER>, DataStatusDelegate{
+
     private static final String TAG = "lib_BaseListFragment";
 
     protected RecyclerView recyclerView;
     protected SwipeRefreshLayout refreshLayout;
-    protected MultiAdapter<T_ADAPTER> adapter;
+    protected SuperAdapter<T_ADAPTER> adapter;
     protected View rootView;
-    private FrameLayout sectionEmptyView;
-    private ImageView ivEmpty;
-    private TextView tvEmtpy;
 
     /*-----------------------------------------------------------------------*/
     /*-----------------------------------------------------------------------*/
@@ -59,7 +49,7 @@ public class BasePageListFragment<T_RESPONSE extends PageIndex, T_ADAPTER> exten
     protected RecyclerView.LayoutManager setLayoutManager();
 
     abstract
-    protected MultiAdapter<T_ADAPTER> setAdapter();
+    protected SuperAdapter<T_ADAPTER> setAdapter();
 
     /**
      * 列表数据转换为适配器数据
@@ -82,149 +72,67 @@ public class BasePageListFragment<T_RESPONSE extends PageIndex, T_ADAPTER> exten
      */
     abstract
     protected void fetchData(int index);
-    /*-----------------------------------------------------------------------*/
-    /*-----------------------------------------------------------------------*/
 
-    /*< < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < <*/
     /**
-     * 空白页面信息
+     * 在recyclerview设置适配器之前调用
      */
-    public static class EmptyStatusViewWrapper {
-        //空白页面布局
-        @LayoutRes
-        public int LayoutResOfEmptyView = R.layout.rll_view_refresh_list_empty;
+    protected void setUpViewBeforeSetAdapter() {}
+    /*-----------------------------------------------------------------------*/
+    /*-----------------------------------------------------------------------*/
 
-        //空白页面中图标
-        @DrawableRes
-        public int DrawableResOfEmpty;
-        //空白页面中文字提示
-        @StringRes
-        public int TextResOfEmpty = R.string.rll_tips_data_empty;
-
-        //初始加载显示时图标[可以是一个动画]
-        @DrawableRes
-        public int DrawableResOfInitLoading = R.drawable.rll_indi_init_loading;
-        //初始加载显示时文字提示
-        @StringRes
-        public int TextResOfInitLoading = R.string.rll_tips_data_initloading;
-
-        //网路异常时图标[无连接或者服务器状态非0,初始无数据时才会显示]
-        @DrawableRes
-        public int DrawableResOfException;
-        //网络异常时文字提示
-        @StringRes
-        public int TextResOfException = R.string.rll_tips_data_exception;
-
-        //初始加载是是否显示无数据的空白页面
-        public boolean IsShowEmptyViewBeforeInitLoading = false;
-    }
-
-    private EmptyStatusViewWrapper emptyStatusViewWrapper = new EmptyStatusViewWrapper();
-
+    private EmptyViewController emptyViewController;
     /**
      * 设置没有数据时的信息
      * @param wrapper
      */
     public void onConfigEmptyStatusViewInfo(EmptyStatusViewWrapper wrapper) {}
-    /*> > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > >*/
 
 
-    /*< < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < <*/
-    /**
-     * 加载更多状态信息
-     */
-    public static class LoadMoreStatusViewWrapper {
-        //加载状态布局[作为recyclerview的footer]
-        @LayoutRes
-        public int LayoutResOfLoadMoreStatusView = R.layout.rll_view_loadmore_footer;
-        //加载状态提示信息[总共3种状态，必须]
-        public String[] TextTipsOfLoadingStatus;
-
-        //所有数据加载完毕时是否显示加载完毕状态
-        public boolean IsShowStatusWhenAllDataDidLoad = false;
-        //下拉刷新时是否显示加载状态[true: 将会添加状态footer]
-        public boolean IsShowStatusWhenRefresh = false;
-
-
-        @Retention(RetentionPolicy.SOURCE)
-        @IntDef({
-                StatusWrapper.LOAD_PRE,
-                StatusWrapper.LOAD_ING,
-                StatusWrapper.LOAD_END})
-        @interface StatusWrapperWhere {}
-        public String getStatusByCode(@StatusWrapperWhere int code) {
-            if (null == this.TextTipsOfLoadingStatus || this.TextTipsOfLoadingStatus.length != 3) {
-                return null;
-            }
-            return this.TextTipsOfLoadingStatus[code];
-        }
-        public interface StatusWrapper {
-            //开始加载前
-            int LOAD_PRE = 0;
-            //正在加载
-            int LOAD_ING = 1;
-            //所有数据全部加载
-            int LOAD_END = 2;
-        }
-    }
-
-    private LoadMoreStatusViewWrapper loadMoreStatusViewWrapper = new LoadMoreStatusViewWrapper();
+    private LoadMoreStatusViewController loadMoreStatusViewController;
     @CallSuper
     public void onConfigLoadMoreStatusViewInfo(LoadMoreStatusViewWrapper wrapper) {
         String[] e = getResources().getStringArray(R.array.rll_load_status);
         wrapper.TextTipsOfLoadingStatus = e;
     }
-    /*> > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > >*/
 
 
-    /*< < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < <*/
-    public class ResponseResultWrapper<T>{
+    /**
+     * 数据包装器
+     * @param <T_RESPONSE>
+     */
+    public class ResponseResultWrapper<T_RESPONSE>{
         public int StatusCode;
         public String StatusMessage;
-        public List<T> Data;
+        public List<T_RESPONSE> Data;
 
-        public ResponseResultWrapper(int statusCode, String statusMessage, List<T> data) {
+        public ResponseResultWrapper(int statusCode, String statusMessage, List<T_RESPONSE> data) {
             this.StatusCode = statusCode;
             this.StatusMessage = statusMessage;
             this.Data = data;
         }
     }
-    /*> > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > >*/
 
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         this.rootView = inflater.inflate(R.layout.rll_fragment_recyclerview_refresh, container, false);
-        this.sectionEmptyView = ViewInject.findView(R.id.section_empty, rootView);
         this.recyclerView = ViewInject.findView(R.id.recyclerView, rootView);
         this.refreshLayout = ViewInject.findView(R.id.refreshLayout, rootView);
 
-        this.onConfigLoadMoreStatusViewInfo(this.loadMoreStatusViewWrapper);
-        //empty view info
-        this.onConfigEmptyStatusViewInfo(this.emptyStatusViewWrapper);
-
-        View emptyView = inflater.inflate(this.emptyStatusViewWrapper.LayoutResOfEmptyView, null, false);
-        this.ivEmpty = ViewInject.findView(R.id.rll_empty_iv_id, emptyView);
-        this.tvEmtpy = ViewInject.findView(R.id.rll_empty_tv_id, emptyView);
-        if (this.emptyStatusViewWrapper.DrawableResOfEmpty > 0) {
-            this.ivEmpty.setImageResource(this.emptyStatusViewWrapper.DrawableResOfEmpty);
-        }
-        if (this.emptyStatusViewWrapper.TextResOfEmpty > 0) {
-            this.tvEmtpy.setText(this.emptyStatusViewWrapper.TextResOfEmpty);
-        }
-
-        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.gravity = Gravity.CENTER;
-        this.sectionEmptyView.addView(emptyView, lp);
-
-        this.init();
+        this.init(inflater);
         return rootView;
     }
 
-    private void init() {
+    private void init(LayoutInflater inflater) {
         this.recyclerView.setLayoutManager(this.setLayoutManager());
 
         this.adapter = this.setAdapter();
+
+        this.loadMoreStatusViewController = new LoadMoreStatusViewController(inflater, this.recyclerView, this.adapter);
+        this.onConfigLoadMoreStatusViewInfo(this.loadMoreStatusViewController.getLoadMoreStatusViewWrapper());
+
+        this.emptyViewController = new EmptyViewController(inflater, this.rootView, adapter);
+        this.onConfigEmptyStatusViewInfo(this.emptyViewController.getEmptyStatusViewWrapper());
 
         this.setUpViewBeforeSetAdapter();
 
@@ -241,6 +149,9 @@ public class BasePageListFragment<T_RESPONSE extends PageIndex, T_ADAPTER> exten
         }
     };
 
+
+    //最后一个可见item位置
+    private int lastVisibleItemPosition;
     private RecyclerView.OnScrollListener onScrollListener = new RecyclerView.OnScrollListener() {
         @Override
         public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
@@ -248,7 +159,7 @@ public class BasePageListFragment<T_RESPONSE extends PageIndex, T_ADAPTER> exten
             //刷新
             if (refreshLayout.isRefreshing() == false
                     && newState == RecyclerView.SCROLL_STATE_IDLE
-                    && mLastVisibleItem == adapter.getItemCount() - 1
+                    && lastVisibleItemPosition == adapter.getItemCount() - 1
                     && isRequestEnd == true
                     && isAllDataDidLoad == false) {
                 BasePageListFragment.this.pullUp();
@@ -264,87 +175,26 @@ public class BasePageListFragment<T_RESPONSE extends PageIndex, T_ADAPTER> exten
             }
 
             if (lm instanceof GridLayoutManager) {
-                mLastVisibleItem = ((GridLayoutManager) lm).findLastVisibleItemPosition();
+                lastVisibleItemPosition = ((GridLayoutManager) lm).findLastVisibleItemPosition();
             } else if (lm instanceof StaggeredGridLayoutManager) {
-                mLastVisibleItem = ((StaggeredGridLayoutManager) lm).findLastVisibleItemPositions(new int[1])[0];
+                lastVisibleItemPosition = ((StaggeredGridLayoutManager) lm).findLastVisibleItemPositions(new int[1])[0];
             } else if (lm instanceof LinearLayoutManager) {
-                mLastVisibleItem = ((LinearLayoutManager) lm).findLastVisibleItemPosition();
+                lastVisibleItemPosition = ((LinearLayoutManager) lm).findLastVisibleItemPosition();
             }
         }
     };
-    /**
-     * 在recyclerview设置适配器之前调用
-     */
-    protected void setUpViewBeforeSetAdapter() {}
-
-
-    private int mLastVisibleItem;
-
-    private View footerView;
-    private ProgressBar loadMoreProgressBar;
-    private TextView loadMoreTextView;
-    private void initLoadMoreView() {
-        this.footerView = LayoutInflater.from(getContext()).inflate(this.loadMoreStatusViewWrapper.LayoutResOfLoadMoreStatusView, recyclerView, false);
-        this.adapter.setSysFooterView(footerView);
-        this.loadMoreProgressBar = ViewInject.findView(R.id.rll_load_more_progress_id, footerView);
-        this.loadMoreTextView = ViewInject.findView(R.id.rll_load_more_tv_id, footerView);
-
-        this.loadMorePre();
-
-        this.footerView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                pullUp();
-            }
-        });
-    }
-
-
-    /*-------------------------------------------------------------------------------*/
-    private void loadMorePre() {
-        if (null != this.footerView) {
-            this.loadMoreTextView.setText(loadMoreStatusViewWrapper.getStatusByCode(LoadMoreStatusViewWrapper.StatusWrapper.LOAD_PRE));//"加载更多"
-        }
-        if (null != loadMoreProgressBar) {
-            this.loadMoreProgressBar.setVisibility(View.GONE);
-        }
-    }
-
-    private void loadMoreIng() {
-        if (null != footerView) {
-            this.loadMoreTextView.setText(loadMoreStatusViewWrapper.getStatusByCode(LoadMoreStatusViewWrapper.StatusWrapper.LOAD_ING));//"正在加载。。。"
-        }
-        if (null != footerView && null != loadMoreProgressBar) {
-            this.loadMoreProgressBar.setVisibility(View.VISIBLE);
-        }
-    }
-
-    private void loadMoreEndWithAllDataDidLoad() {
-        if (null != footerView) {
-            this.loadMoreTextView.setText(loadMoreStatusViewWrapper.getStatusByCode(LoadMoreStatusViewWrapper.StatusWrapper.LOAD_END));//"数据已全部加载完成"
-        }
-        if (null != loadMoreProgressBar) {
-            this.loadMoreProgressBar.setVisibility(View.GONE);
-        }
-    }
-    /*-------------------------------------------------------------------------------*/
-
 
     private void pullDown() {
         if (!isRequestEnd) {
             return;
         }
-        this.emptyInitLoading();
+        this.emptyViewController.withInitLoading();
+
         Log.d(TAG, "pullDown()");
         this.pageStartIndex = 0;
         this.isRequestEnd = false;
         this.isAllDataDidLoad = false;
-        if (this.loadMoreStatusViewWrapper.IsShowStatusWhenRefresh) {
-            if (null == footerView) {
-                this.initLoadMoreView();
-            }
-            this.loadMoreIng();
-        }
+        this.loadMoreStatusViewController.withPullDown();
 
         new Handler().postDelayed(new Runnable() {
             @Override
@@ -363,7 +213,7 @@ public class BasePageListFragment<T_RESPONSE extends PageIndex, T_ADAPTER> exten
         Log.d(TAG, "pullUp()");
         this.isRequestEnd = false;
 
-        this.loadMoreIng();
+        this.loadMoreStatusViewController.withPullUp();
 
         new Handler().postDelayed(new Runnable() {
             @Override
@@ -409,53 +259,49 @@ public class BasePageListFragment<T_RESPONSE extends PageIndex, T_ADAPTER> exten
 
     private void setOnSuccessPath_(ResponseResultWrapper<T_RESPONSE> result) {
         this.isRequestEnd = true;
-        this.loadMorePre();
 
+        //接口数据异常
         if (null == result || result.StatusCode != 0) {
             this.refreshLayout.setRefreshing(false);
 
             //exception
-            this.emptyException();
+            this.emptyViewController.withException();
             return;
         }
 
         final List<T_RESPONSE> datas = null == result.Data ? new ArrayList<T_RESPONSE>() : result.Data;
         final int count = datas.size();
-        final int empIndexId = count == 0 ? 0 : datas.get(count - 1).getIndexId();
+        final int empIndexId = count == 0 ? 0 : datas.get(count - 1).getPageIndex();
 
-        //下拉刷新
+        //下拉刷新后且获取到数据, 此时清除旧数据
+        //这里会产生一个歧义(看情况): 刷新的时候如果未获取到数据(一切状态正常只是无数据), 此时要不要清楚旧数据的问题. 我这里采用的是清除的方式
         if (0 == pageStartIndex) {
             this.adapter.clear();
         }
 
         int dataSize = adapter.getDataSectionItemCount();
+        //列表无数据且未获取到数据，此时认为无数据
         if (0 == dataSize && 0 == count) {
             this.isAllDataDidLoad = true;
-            this.adapter.removeSysFooterView(footerView);
-            this.footerView = null;
+            this.loadMoreStatusViewController.withRemoveLoadStatusView();
 
-            this.emptyNoData();
-            this.onNoData();
+            this.emptyViewController.withNoneDatas();
+            this.onNoneData();
         }else {
-            this.sectionEmptyView.setVisibility(View.GONE);
+            //有数据，需要判断数据是否已全部加载完毕
+
+            this.emptyViewController.withRemoveEmptyView();
             if (0 == pageStartIndex) {
                 this.adapter.notifyDataSetChanged();
             }
-            if (null == footerView) {
-                this.initLoadMoreView();
-            }
 
-            //数据已经全部加载完毕
+            //当前获取的数据少于一页数据，此时认为数据已经全部加载完毕
             if (count < setPageSize()) {
                 this.isAllDataDidLoad = true;
-                if (this.loadMoreStatusViewWrapper.IsShowStatusWhenAllDataDidLoad) {
-                    this.loadMoreEndWithAllDataDidLoad();
-
-                }else {
-                    this.adapter.removeSysFooterView(footerView);
-                    this.footerView = null;
-                }
+                this.loadMoreStatusViewController.withLoadSuccess();
                 this.onAllDataDidLoad();
+            }else {
+                this.loadMoreStatusViewController.withResetStatus();
             }
             this.adapter.addAll(convertData(datas));
         }
@@ -467,55 +313,12 @@ public class BasePageListFragment<T_RESPONSE extends PageIndex, T_ADAPTER> exten
     private void setOnFailurePath_() {
         this.isRequestEnd = true;
         this.refreshLayout.setRefreshing(false);
-        this.loadMorePre();
+
+        this.loadMoreStatusViewController.withResetStatus();
 
         //exception
-        this.emptyException();
+        this.emptyViewController.withException();
     }
-
-
-    /*----------------------------------------------------------------->>>*/
-    private boolean isFirstInited = false;
-    private void emptyInitLoading() {
-        //只有初次加载时显示[如果配置初次显示的话]
-        if (this.isFirstInited) {
-            return;
-        }
-        this.tvEmtpy.setText(this.emptyStatusViewWrapper.TextResOfInitLoading);
-        this.ivEmpty.setImageResource(this.emptyStatusViewWrapper.DrawableResOfInitLoading);
-        this.sectionEmptyView.setVisibility(this.emptyStatusViewWrapper.IsShowEmptyViewBeforeInitLoading ? View.VISIBLE : View.GONE);
-        this.isFirstInited = true;
-
-        Drawable drawable = this.ivEmpty.getDrawable();
-        if (null == drawable) {
-            return;
-        }
-        if (drawable instanceof AnimationDrawable) {
-            AnimationDrawable ad = (AnimationDrawable) drawable;
-            if(ad.isRunning()) {
-                ad.stop();
-            }
-            ad.start();
-            return;
-        }
-    }
-
-    private void emptyException() {
-        //只有在列表中没有数据项时[不包括 XX-header XX-footer]
-        if (this.adapter.getDataSectionItemCount() != 0) {
-            return;
-        }
-        this.tvEmtpy.setText(this.emptyStatusViewWrapper.TextResOfException);
-        this.ivEmpty.setImageResource(this.emptyStatusViewWrapper.DrawableResOfException);
-        this.sectionEmptyView.setVisibility(View.VISIBLE);
-    }
-
-    private void emptyNoData() {
-        this.tvEmtpy.setText(this.emptyStatusViewWrapper.TextResOfEmpty);
-        this.ivEmpty.setImageResource(this.emptyStatusViewWrapper.DrawableResOfEmpty);
-        this.sectionEmptyView.setVisibility(View.VISIBLE);
-    }
-    /*<<<-----------------------------------------------------------------*/
 
     public boolean isRequestIng() {
         return !this.isRequestEnd;
@@ -528,8 +331,8 @@ public class BasePageListFragment<T_RESPONSE extends PageIndex, T_ADAPTER> exten
      * 暂无数据回调
      */
     @Override
-    public void onNoData() {
-        Log.e(TAG, "onNoData()");
+    public void onNoneData() {
+        Log.e(TAG, "onNoneData");
     }
 
     /**

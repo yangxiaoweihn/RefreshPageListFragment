@@ -10,5 +10,5 @@ public interface PageIndex {
      * 返回分页标识id
      * @return
      */
-    int getIndexId();
+    int getPageIndex();
 }

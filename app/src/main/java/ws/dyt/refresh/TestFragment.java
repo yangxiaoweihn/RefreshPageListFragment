@@ -6,14 +6,15 @@ import android.support.v7.widget.RecyclerView;
 import java.util.ArrayList;
 import java.util.List;
 
+import ws.dyt.pagelist.entity.PageIndex;
 import ws.dyt.pagelist.ui.BasePageListFragment;
-import ws.dyt.view.adapter.MultiAdapter;
+import ws.dyt.view.adapter.SuperAdapter;
 import ws.dyt.view.viewholder.BaseViewHolder;
 
 /**
  * Created by yangxiaowei on 16/6/29.
  */
-public class TestFragment extends BasePageListFragment<String, String> {
+public class TestFragment extends BasePageListFragment<TestFragment.TestEntity, TestFragment.TestEntity> {
 
 
     @Override
@@ -29,11 +30,11 @@ public class TestFragment extends BasePageListFragment<String, String> {
     }
 
     @Override
-    protected MultiAdapter<String> setAdapter() {
-        return new MultiAdapter<String>(getContext(), new ArrayList<String>(), R.layout.item_text_c){
+    protected SuperAdapter<TestEntity> setAdapter() {
+        return new SuperAdapter<TestEntity>(getContext(), new ArrayList<TestEntity>(), R.layout.item_text_c){
             @Override
             public void convert(BaseViewHolder holder, int position) {
-                holder.setText(R.id.tv_text, getItem(position));
+                holder.setText(R.id.tv_text, getItem(position).des);
             }
         };
     }
@@ -47,24 +48,34 @@ public class TestFragment extends BasePageListFragment<String, String> {
     int current = 0;
     @Override
     protected void fetchData(int index) {
-        if (isError) {
-            setOnSuccessPath(new ResponseResultWrapper<String>(9, "XXX", null));
+        if (count == 3) {
+            count = 0;
+            setOnSuccessPath(new ResponseResultWrapper<>(0, "Success", new ArrayList<TestEntity>()));
             return;
         }
-        List<String> data = this.generate(index);
+        count ++;
+
+
+        if (isError) {
+            setOnSuccessPath(new ResponseResultWrapper<TestEntity>(9, "XXX", null));
+            return;
+        }
+        List<TestEntity> data = this.generate(index);
         current += data.size();
-        setOnSuccessPath(new ResponseResultWrapper<String>(0, "Success", data));
+        setOnSuccessPath(new ResponseResultWrapper<>(0, "Success", data));
     }
 
-    private List<String> generate(int pre) {
+    int count = 0;
+    private List<TestEntity> generate(int pre) {
+
         if (0 == pre) {
             current = 0;
         }
         int r = dataCount - current;
         r =  r >= PAGE_SIZE ? PAGE_SIZE : r;
-        List<String> data = new ArrayList<>();
+        List<TestEntity> data = new ArrayList<>();
         for (int i = 1; i <= r; i++) {
-            data.add("测试测试--"+(pre + i));
+            data.add(new TestEntity(i, "测试测试--"+(pre + i)));
         }
         return data;
     }
@@ -90,7 +101,22 @@ public class TestFragment extends BasePageListFragment<String, String> {
 
 
     @Override
-    protected List<String> convertData(List<String> datas) {
+    protected List<TestEntity> convertData(List<TestEntity> datas) {
         return datas;
+    }
+
+    static class TestEntity implements PageIndex{
+        public int id;
+        public String des;
+
+        public TestEntity(int id, String des) {
+            this.id = id;
+            this.des = des;
+        }
+
+        @Override
+        public int getPageIndex() {
+            return this.id;
+        }
     }
 }

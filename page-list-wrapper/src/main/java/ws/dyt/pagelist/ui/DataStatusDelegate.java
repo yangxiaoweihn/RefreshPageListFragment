@@ -7,7 +7,7 @@ public interface DataStatusDelegate {
     /**
      * 暂无数据回调
      */
-    void onNoData();
+    void onNoneData();
 
     /**
      * 所有数据全部加载完毕回调
