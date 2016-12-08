@@ -1,5 +1,6 @@
 package ws.dyt.pagelist.config;
 
+import android.content.res.Resources;
 import android.support.annotation.IntDef;
 import android.support.annotation.LayoutRes;
 
@@ -19,10 +20,13 @@ public class LoadMoreStatusViewWrapper {
     public String[] TextTipsOfLoadingStatus;
 
     //所有数据加载完毕时是否显示加载完毕状态
-    public boolean IsShowStatusWhenAllDataDidLoad = false;
+    public boolean IsShowStatusWhenAllDataDidLoad = true;
     //下拉刷新时是否显示加载状态[true: 将会添加状态footer]
     public boolean IsShowStatusWhenRefresh = false;
 
+    public LoadMoreStatusViewWrapper(Resources resources) {
+        TextTipsOfLoadingStatus = resources.getStringArray(R.array.rll_load_status);
+    }
 
     @Retention(RetentionPolicy.SOURCE)
     @IntDef({

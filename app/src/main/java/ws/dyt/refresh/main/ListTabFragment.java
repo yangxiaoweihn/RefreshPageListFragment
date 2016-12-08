@@ -11,13 +11,11 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
-import ws.dyt.pagelist.ui.OnVisibleble;
+import ws.dyt.pagelist.fragment.lazy.OnVisiblable;
 import ws.dyt.refresh.R;
 import ws.dyt.refresh.sub.NewsTabFragment;
 
@@ -43,6 +41,12 @@ public class ListTabFragment extends Fragment {
         rootView = inflater.inflate(R.layout.fragment_main_tab_list, container, false);
         this.init();
         return rootView;
+    }
+
+    @Override
+    public void setUserVisibleHint(boolean isVisibleToUser) {
+        super.setUserVisibleHint(isVisibleToUser);
+        Log.e("BBBBBB", getClass().getSimpleName() + " : " + "列表" + " -> " + isVisibleToUser + " , " + getUserVisibleHint());
     }
 
     private void init() {
@@ -92,7 +96,7 @@ public class ListTabFragment extends Fragment {
 
         tabLayout.setupWithViewPager(viewPager);
 
-        viewPager.setCurrentItem(0);
+        viewPager.setCurrentItem(2);
 
         tabLayout.setTabMode(TabLayout.MODE_SCROLLABLE);
 
@@ -109,7 +113,7 @@ public class ListTabFragment extends Fragment {
         @Override
         public void onPageSelected(int position) {
             Log.e("DEBUG", "index -> news: "+position);
-            ((OnVisibleble) adapter.getItem(position)).onVisibleToUser(true);
+            ((OnVisiblable) adapter.getItem(position)).onVisibleToUser(true);
         }
 
         @Override

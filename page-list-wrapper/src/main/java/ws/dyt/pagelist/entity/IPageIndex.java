@@ -5,7 +5,7 @@ package ws.dyt.pagelist.entity;
  *
  * 分页接口
  */
-public interface PageIndex {
+public interface IPageIndex {
     /**
      * 返回分页标识id
      * @return

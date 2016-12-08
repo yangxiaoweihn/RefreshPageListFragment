@@ -1,1 +1,1 @@
-include ':app', ':page-list-wrapper'
+include ':app', ':page-list-wrapper', ':recyclerview-adapter-hf'

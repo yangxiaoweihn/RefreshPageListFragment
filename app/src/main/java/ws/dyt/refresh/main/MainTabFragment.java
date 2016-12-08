@@ -59,7 +59,7 @@ public class MainTabFragment extends Fragment {
 
         tabLayout.setupWithViewPager(viewPager);
 
-        viewPager.setCurrentItem(0);
+        viewPager.setCurrentItem(1);
 
 
 //        viewPager.addOnPageChangeListener(pageChangeListener);

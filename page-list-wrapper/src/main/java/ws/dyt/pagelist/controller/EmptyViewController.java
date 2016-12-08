@@ -13,24 +13,24 @@ import android.widget.TextView;
 import ws.dyt.pagelist.R;
 import ws.dyt.pagelist.config.EmptyStatusViewWrapper;
 import ws.dyt.pagelist.utils.ViewInject;
-import ws.dyt.view.adapter.SuperAdapter;
+import ws.dyt.view.adapter.core.base.BaseAdapter;
 
 /**
  * Created by yangxiaowei on 16/8/30.
  *
  * 空白页面控制器
  */
-public class EmptyViewController {
+public class EmptyViewController implements IRelease{
 
     private EmptyStatusViewWrapper emptyStatusViewWrapper;
 
-    private SuperAdapter adapter;
+    private BaseAdapter adapter;
 
     private FrameLayout sectionEmptyView;
     private ImageView ivEmpty;
     private TextView tvEmtpy;
 
-    public EmptyViewController(LayoutInflater inflater, View rootView, SuperAdapter adapter) {
+    public EmptyViewController(LayoutInflater inflater, View rootView, BaseAdapter adapter) {
         this.adapter = adapter;
 
         this.emptyStatusViewWrapper = new EmptyStatusViewWrapper();
@@ -113,5 +113,28 @@ public class EmptyViewController {
 
     public EmptyStatusViewWrapper getEmptyStatusViewWrapper() {
         return emptyStatusViewWrapper;
+    }
+
+    private void destroyAnimationDrawable(Drawable drawable) {
+        if (null == drawable) {
+            return;
+        }
+        if (drawable instanceof AnimationDrawable) {
+            AnimationDrawable ad = (AnimationDrawable) drawable;
+            if (ad.isRunning()) {
+                ad.stop();
+            }
+        }
+    }
+
+    @Override
+    public void release() {
+        if (null != this.ivEmpty) {
+            this.destroyAnimationDrawable(this.ivEmpty.getDrawable());
+        }
+
+        if (null != sectionEmptyView) {
+            this.sectionEmptyView.removeAllViewsInLayout();
+        }
     }
 }

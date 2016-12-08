@@ -1,4 +1,4 @@
-package ws.dyt.pagelist.ui;
+package ws.dyt.pagelist.delegate;
 
 /**
  * Created by yangxiaowei on 16/7/9.

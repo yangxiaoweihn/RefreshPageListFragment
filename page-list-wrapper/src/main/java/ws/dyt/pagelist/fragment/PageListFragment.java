@@ -1,8 +1,7 @@
-package ws.dyt.pagelist.ui;
+package ws.dyt.pagelist.fragment;
 
 
 import android.os.Bundle;
-import android.os.Handler;
 import android.support.annotation.CallSuper;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.GridLayoutManager;
@@ -13,7 +12,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,97 +19,83 @@ import java.util.List;
 import ws.dyt.pagelist.R;
 import ws.dyt.pagelist.config.EmptyStatusViewWrapper;
 import ws.dyt.pagelist.config.LoadMoreStatusViewWrapper;
+import ws.dyt.pagelist.config.ResponseResultWrapper;
 import ws.dyt.pagelist.controller.EmptyViewController;
 import ws.dyt.pagelist.controller.LoadMoreStatusViewController;
-import ws.dyt.pagelist.entity.PageIndex;
+import ws.dyt.pagelist.delegate.DataStatusDelegate;
+import ws.dyt.pagelist.delegate.IInitConfig;
+import ws.dyt.pagelist.delegate.IOnConfigCallback;
+import ws.dyt.pagelist.delegate.ResponseResultDelegate;
+import ws.dyt.pagelist.entity.IPageIndex;
+import ws.dyt.pagelist.fragment.lazy.LazyLoadFragment;
 import ws.dyt.pagelist.utils.ViewInject;
-import ws.dyt.view.adapter.SuperAdapter;
+import ws.dyt.view.adapter.core.base.BaseAdapter;
 
 
 /**
+ *
+ * 该类封装分页加载数据及错误处理，同时适用于上述情景
+ *
+ * 基本步骤：
+ * 1. 复写必要方法
+ * 2. 重写部分方法
+ * 3. 请求数据
+ * 4. 设置请求结果数据集{@link #setOnSuccessPath(ws.dyt.pagelist.config.ResponseResultWrapper), {@link #setOnFailurePath()}}
+ *
+ * {@link #initPageSize()} 指定每页加载的数据量，默认为{@link IInitConfig#PAGE_SIZE} 条，当某次获取的数据量<{@link #initPageSize()}
+ *      时，认为所有数据加载完毕
+ *
  * @param <T_RESPONSE>   服务端返回的数组数据，用来真实分页的数据
  * @param <T_ADAPTER>   适配器装载的数据（有可能真实的数据里会添加一些别的数据进去显示）
  */
 abstract
-public class BasePageListFragment<T_RESPONSE extends PageIndex, T_ADAPTER> extends BasePageFragment
-        implements ResponseResultDelegate<T_RESPONSE, T_ADAPTER>, DataStatusDelegate{
+public class PageListFragment<T_RESPONSE extends IPageIndex, T_ADAPTER> extends LazyLoadFragment
+        implements IInitConfig<T_RESPONSE, T_ADAPTER>, ResponseResultDelegate<T_RESPONSE>, DataStatusDelegate, IOnConfigCallback {
 
     private static final String TAG = "lib_BaseListFragment";
 
     protected RecyclerView recyclerView;
     protected SwipeRefreshLayout refreshLayout;
-    protected SuperAdapter<T_ADAPTER> adapter;
+    private BaseAdapter<T_ADAPTER> adapter;
     protected View rootView;
 
-    /*-----------------------------------------------------------------------*/
-    /*-----------------------------------------------------------------------*/
-    abstract
-    protected RecyclerView.LayoutManager setLayoutManager();
-
-    abstract
-    protected SuperAdapter<T_ADAPTER> setAdapter();
+    public void scrollToPosition(int position) {
+        if (isRemoving() || isDetached() || null == this.recyclerView) {
+            return;
+        }
+        if (isRequestIng()) {
+            return;
+        }
+        this.recyclerView.scrollToPosition(position);//.smoothScrollToPosition(0);
+    }
 
     /**
-     * 列表数据转换为适配器数据
-     * @param datas
+     * 默认线性纵向布局管理器
      * @return
      */
-    abstract
-    protected List<T_ADAPTER> convertData(List<T_RESPONSE> datas);
+    @Override
+    public RecyclerView.LayoutManager initLayoutManager() {
+        LinearLayoutManager ll = new LinearLayoutManager(getContext());
+        ll.setOrientation(LinearLayoutManager.VERTICAL);
+        return ll;
+    }
 
-    /**
-     * 设置每次请求数据条数
-     * @return
-     */
-    abstract
-    protected int setPageSize();
+    @Override
+    public int initPageSize() {
+        return PAGE_SIZE;
+    }
 
-    /**
-     * 请求加载数据
-     * @param index
-     */
-    abstract
-    protected void fetchData(int index);
-
-    /**
-     * 在recyclerview设置适配器之前调用
-     */
-    protected void setUpViewBeforeSetAdapter() {}
-    /*-----------------------------------------------------------------------*/
-    /*-----------------------------------------------------------------------*/
+    @Override
+    public void setUpView() {}
 
     private EmptyViewController emptyViewController;
-    /**
-     * 设置没有数据时的信息
-     * @param wrapper
-     */
+    @Override
     public void onConfigEmptyStatusViewInfo(EmptyStatusViewWrapper wrapper) {}
 
 
     private LoadMoreStatusViewController loadMoreStatusViewController;
-    @CallSuper
-    public void onConfigLoadMoreStatusViewInfo(LoadMoreStatusViewWrapper wrapper) {
-        String[] e = getResources().getStringArray(R.array.rll_load_status);
-        wrapper.TextTipsOfLoadingStatus = e;
-    }
-
-
-    /**
-     * 数据包装器
-     * @param <T_RESPONSE>
-     */
-    public class ResponseResultWrapper<T_RESPONSE>{
-        public int StatusCode;
-        public String StatusMessage;
-        public List<T_RESPONSE> Data;
-
-        public ResponseResultWrapper(int statusCode, String statusMessage, List<T_RESPONSE> data) {
-            this.StatusCode = statusCode;
-            this.StatusMessage = statusMessage;
-            this.Data = data;
-        }
-    }
-
+    @Override
+    public void onConfigLoadMoreStatusViewInfo(LoadMoreStatusViewWrapper wrapper) {}
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -124,9 +108,9 @@ public class BasePageListFragment<T_RESPONSE extends PageIndex, T_ADAPTER> exten
     }
 
     private void init(LayoutInflater inflater) {
-        this.recyclerView.setLayoutManager(this.setLayoutManager());
+        this.recyclerView.setLayoutManager(this.initLayoutManager());
 
-        this.adapter = this.setAdapter();
+        this.adapter = this.initAdapter();
 
         this.loadMoreStatusViewController = new LoadMoreStatusViewController(inflater, this.recyclerView, this.adapter);
         this.onConfigLoadMoreStatusViewInfo(this.loadMoreStatusViewController.getLoadMoreStatusViewWrapper());
@@ -134,7 +118,7 @@ public class BasePageListFragment<T_RESPONSE extends PageIndex, T_ADAPTER> exten
         this.emptyViewController = new EmptyViewController(inflater, this.rootView, adapter);
         this.onConfigEmptyStatusViewInfo(this.emptyViewController.getEmptyStatusViewWrapper());
 
-        this.setUpViewBeforeSetAdapter();
+        this.setUpView();
 
         this.recyclerView.setAdapter(adapter);
 
@@ -145,7 +129,7 @@ public class BasePageListFragment<T_RESPONSE extends PageIndex, T_ADAPTER> exten
     private SwipeRefreshLayout.OnRefreshListener onRefreshListener = new SwipeRefreshLayout.OnRefreshListener() {
         @Override
         public void onRefresh() {
-            BasePageListFragment.this.pullDown();
+            PageListFragment.this.pullDown();
         }
     };
 
@@ -162,7 +146,7 @@ public class BasePageListFragment<T_RESPONSE extends PageIndex, T_ADAPTER> exten
                     && lastVisibleItemPosition == adapter.getItemCount() - 1
                     && isRequestEnd == true
                     && isAllDataDidLoad == false) {
-                BasePageListFragment.this.pullUp();
+                PageListFragment.this.pullUp();
             }
         }
 
@@ -184,27 +168,28 @@ public class BasePageListFragment<T_RESPONSE extends PageIndex, T_ADAPTER> exten
         }
     };
 
+    //标记是否为下拉刷新请求
+    private boolean isPullDownRequesting = false;
     private void pullDown() {
+        Log.d("GGGGG", "pullDown()");
         if (!isRequestEnd) {
             return;
         }
+        this.refreshLayout.setRefreshing(true);
         this.emptyViewController.withInitLoading();
 
-        Log.d(TAG, "pullDown()");
+        this.isPullDownRequesting = true;
         this.pageStartIndex = 0;
+        this.realDataCount = 0;
         this.isRequestEnd = false;
         this.isAllDataDidLoad = false;
         this.loadMoreStatusViewController.withPullDown();
 
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                fetchData(pageStartIndex);
-            }
-        }, delayTest);
-    }
-    private static final int delayTest = 2000;
+        //针对下拉第一页进行处理
+        this.pageStartIndex = this.filterPageIndexOffset(this.realDataCount, this.pageStartIndex);
 
+        this.sendRequest(pageStartIndex);
+    }
 
     private void pullUp() {
         if (isAllDataDidLoad || !isRequestEnd) {
@@ -215,14 +200,8 @@ public class BasePageListFragment<T_RESPONSE extends PageIndex, T_ADAPTER> exten
 
         this.loadMoreStatusViewController.withPullUp();
 
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                fetchData(pageStartIndex);
-            }
-        }, delayTest);
+        this.sendRequest(pageStartIndex);
     }
-
 
     /**
      * 初次加载数据,或者强制刷新-都是重新获取数据
@@ -230,8 +209,12 @@ public class BasePageListFragment<T_RESPONSE extends PageIndex, T_ADAPTER> exten
     @Override
     final
     protected void fetchData() {
-        this.refreshLayout.setRefreshing(true);
-        this.pullDown();
+        refreshLayout.post(new Runnable() {
+            @Override
+            public void run() {
+                pullDown();
+            }
+        });
     }
 
     //一次请求是否完毕
@@ -239,43 +222,46 @@ public class BasePageListFragment<T_RESPONSE extends PageIndex, T_ADAPTER> exten
     //是否数据已经全部加载完毕
     private boolean isAllDataDidLoad = false;
 
-    //分页其实索引id
+    //分页索引id
     private int pageStartIndex = 0;
 
     /**{@link ResponseResultDelegate}
      * ---------------------------------------------------------------------------*/
     @Override
+    final
     public void setOnSuccessPath(ResponseResultWrapper<T_RESPONSE> result) {
         Log.e(TAG, "setOnSuccessPath");
+        this.isRequestEnd = true;
         this.setOnSuccessPath_(result);
+        this.isPullDownRequesting = false;
     }
 
     @Override
+    final
     public void setOnFailurePath(){
         Log.e(TAG, "setOnFailurePath");
+        this.isRequestEnd = true;
         this.setOnFailurePath_();
+        this.isPullDownRequesting = false;
     }
     /**---------------------------------------------------------------------------*/
 
+    private int realDataCount = 0;
     private void setOnSuccessPath_(ResponseResultWrapper<T_RESPONSE> result) {
-        this.isRequestEnd = true;
-
         //接口数据异常
         if (null == result || result.StatusCode != 0) {
-            this.refreshLayout.setRefreshing(false);
-
-            //exception
-            this.emptyViewController.withException();
+            this.setOnFailurePath();
             return;
         }
 
         final List<T_RESPONSE> datas = null == result.Data ? new ArrayList<T_RESPONSE>() : result.Data;
         final int count = datas.size();
         final int empIndexId = count == 0 ? 0 : datas.get(count - 1).getPageIndex();
+        this.realDataCount += count;
 
         //下拉刷新后且获取到数据, 此时清除旧数据
         //这里会产生一个歧义(看情况): 刷新的时候如果未获取到数据(一切状态正常只是无数据), 此时要不要清楚旧数据的问题. 我这里采用的是清除的方式
-        if (0 == pageStartIndex) {
+        if (this.isPullDownRequesting) {
             this.adapter.clear();
         }
 
@@ -291,33 +277,58 @@ public class BasePageListFragment<T_RESPONSE extends PageIndex, T_ADAPTER> exten
             //有数据，需要判断数据是否已全部加载完毕
 
             this.emptyViewController.withRemoveEmptyView();
-            if (0 == pageStartIndex) {
+
+            if (this.isPullDownRequesting) {
+                //为了确保第一页定位问题, 不然会定位到最底部
                 this.adapter.notifyDataSetChanged();
             }
 
             //当前获取的数据少于一页数据，此时认为数据已经全部加载完毕
-            if (count < setPageSize()) {
+            if (count < initPageSize()) {
                 this.isAllDataDidLoad = true;
                 this.loadMoreStatusViewController.withLoadSuccess();
                 this.onAllDataDidLoad();
             }else {
                 this.loadMoreStatusViewController.withResetStatus();
             }
-            this.adapter.addAll(convertData(datas));
+            this.adapter.addAll(this.flatMap(datas));
         }
 
-        this.pageStartIndex = empIndexId;
+        this.pageStartIndex = this.filterPageIndexOffset(this.realDataCount, empIndexId);
         this.refreshLayout.setRefreshing(false);
     }
 
     private void setOnFailurePath_() {
-        this.isRequestEnd = true;
         this.refreshLayout.setRefreshing(false);
 
-        this.loadMoreStatusViewController.withResetStatus();
+        this.loadMoreStatusViewController.withException();
 
         //exception
         this.emptyViewController.withException();
+    }
+
+    /**
+     * 分页页码处理逻辑, 默认按照分页id
+     *
+     * @param realDataCount         从数据源获取到的数据累积量
+     * @param lastItemPageIndexId   从数据源获取的当前页最后一项分页id
+     * @return
+     */
+    private int filterPageIndexOffset(int realDataCount, int lastItemPageIndexId) {
+        realDataCount = this.filterPageIndexOffset(realDataCount);
+        return -1 == realDataCount ? lastItemPageIndexId : realDataCount;
+    }
+
+    /**
+     * 重写分页标识
+     *
+     * @param realDataCount
+     * @return
+     */
+    protected int filterPageIndexOffset(int realDataCount) {
+        //比如通过页码分页可以这么写(分页从1...n)
+        //return realDataCount / setPageSize() + 1;
+        return -1;
     }
 
     public boolean isRequestIng() {
@@ -341,11 +352,33 @@ public class BasePageListFragment<T_RESPONSE extends PageIndex, T_ADAPTER> exten
     @Override
     public void onAllDataDidLoad() {
         Log.e(TAG, "onAllDataDidLoad()");
-        toast("数据已全部加载完成");
     }
     /**---------------------------------------------------------------------------*/
 
-    private void toast(String toast) {
-        Toast.makeText(getContext(), toast, Toast.LENGTH_SHORT).show();
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+
+        if (null != this.adapter) {
+            this.adapter.clear();
+        }
+
+        if (null != refreshLayout) {
+            this.refreshLayout.setOnRefreshListener(null);
+            this.onRefreshListener = null;
+        }
+
+        if (null != recyclerView) {
+            this.recyclerView.removeOnScrollListener(this.onScrollListener);
+            this.onScrollListener = null;
+        }
+
+        if (null != emptyViewController) {
+            emptyViewController.release();
+        }
+
+        if (null != loadMoreStatusViewController) {
+            loadMoreStatusViewController.release();
+        }
     }
 }

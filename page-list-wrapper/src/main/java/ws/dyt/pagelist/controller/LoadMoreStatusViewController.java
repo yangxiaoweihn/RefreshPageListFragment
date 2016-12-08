@@ -9,31 +9,31 @@ import android.widget.TextView;
 import ws.dyt.pagelist.R;
 import ws.dyt.pagelist.config.LoadMoreStatusViewWrapper;
 import ws.dyt.pagelist.utils.ViewInject;
-import ws.dyt.view.adapter.SuperAdapter;
+import ws.dyt.view.adapter.core.base.BaseAdapter;
 
 /**
  * Created by yangxiaowei on 16/8/30.
  *
  * 加载更多状态控件控制器
  */
-public class LoadMoreStatusViewController {
+public class LoadMoreStatusViewController implements IRelease{
 
     private LoadMoreStatusViewWrapper loadMoreStatusViewWrapper;
 
     private LayoutInflater inflater;
-    private SuperAdapter adapter;
+    private BaseAdapter adapter;
     private RecyclerView recyclerView;
 
     private View footerView;
     private ProgressBar loadMoreProgressBar;
     private TextView loadMoreTextView;
 
-    public LoadMoreStatusViewController(LayoutInflater inflater, RecyclerView recyclerView, SuperAdapter adapter) {
+    public LoadMoreStatusViewController(LayoutInflater inflater, RecyclerView recyclerView, BaseAdapter adapter) {
         this.inflater = inflater;
         this.recyclerView = recyclerView;
         this.adapter = adapter;
 
-        this.loadMoreStatusViewWrapper = new LoadMoreStatusViewWrapper();
+        this.loadMoreStatusViewWrapper = new LoadMoreStatusViewWrapper(recyclerView.getResources());
     }
 
     /**
@@ -102,7 +102,6 @@ public class LoadMoreStatusViewController {
      * 下拉刷新时客户端可能有设置了配置项
      */
     public void withPullDown() {
-        this.loadMoreStatusViewWrapper.IsShowStatusWhenRefresh = true;
         if (this.loadMoreStatusViewWrapper.IsShowStatusWhenRefresh) {
             this.loadMoreIng();
         }
@@ -134,7 +133,24 @@ public class LoadMoreStatusViewController {
         }
     }
 
+    /**
+     * 异常
+     */
+    public void withException() {
+        //异常且列表无数据
+        if (this.adapter.getDataSectionItemCount() == 0) {
+            this.withRemoveLoadStatusView();
+        }else {
+            this.withResetStatus();
+        }
+    }
+
     public LoadMoreStatusViewWrapper getLoadMoreStatusViewWrapper() {
         return loadMoreStatusViewWrapper;
+    }
+
+    @Override
+    public void release() {
+
     }
 }

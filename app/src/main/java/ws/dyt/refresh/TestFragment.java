@@ -6,31 +6,28 @@ import android.support.v7.widget.RecyclerView;
 import java.util.ArrayList;
 import java.util.List;
 
-import ws.dyt.pagelist.entity.PageIndex;
-import ws.dyt.pagelist.ui.BasePageListFragment;
+import ws.dyt.pagelist.config.ResponseResultWrapper;
+import ws.dyt.pagelist.entity.IPageIndex;
+import ws.dyt.pagelist.fragment.PageListFragment;
 import ws.dyt.view.adapter.SuperAdapter;
 import ws.dyt.view.viewholder.BaseViewHolder;
 
 /**
  * Created by yangxiaowei on 16/6/29.
  */
-public class TestFragment extends BasePageListFragment<TestFragment.TestEntity, TestFragment.TestEntity> {
+public class TestFragment extends PageListFragment<TestFragment.TestEntity, TestFragment.TestEntity> {
 
 
-    @Override
-    protected void setUpViewBeforeSetAdapter() {
-
-    }
 
     @Override
-    protected RecyclerView.LayoutManager setLayoutManager() {
+    public RecyclerView.LayoutManager initLayoutManager() {
         LinearLayoutManager llm = new LinearLayoutManager(getContext());
         llm.setOrientation(LinearLayoutManager.VERTICAL);
         return llm;
     }
 
     @Override
-    protected SuperAdapter<TestEntity> setAdapter() {
+    public SuperAdapter<TestEntity> initAdapter() {
         return new SuperAdapter<TestEntity>(getContext(), new ArrayList<TestEntity>(), R.layout.item_text_c){
             @Override
             public void convert(BaseViewHolder holder, int position) {
@@ -41,16 +38,16 @@ public class TestFragment extends BasePageListFragment<TestFragment.TestEntity, 
 
     private static final int PAGE_SIZE = 10;
     @Override
-    protected int setPageSize() {
+    public int initPageSize() {
         return PAGE_SIZE;
     }
 
     int current = 0;
     @Override
-    protected void fetchData(int index) {
-        if (count == 3) {
+    public void sendRequest(int index) {
+        if (count == 1) {
             count = 0;
-            setOnSuccessPath(new ResponseResultWrapper<>(0, "Success", new ArrayList<TestEntity>()));
+            setOnSuccessPath(new ResponseResultWrapper<>(1, "Success", new ArrayList<TestEntity>()));
             return;
         }
         count ++;
@@ -101,11 +98,11 @@ public class TestFragment extends BasePageListFragment<TestFragment.TestEntity, 
 
 
     @Override
-    protected List<TestEntity> convertData(List<TestEntity> datas) {
+    public List<TestEntity> flatMap(List<TestEntity> datas) {
         return datas;
     }
 
-    static class TestEntity implements PageIndex{
+    static class TestEntity implements IPageIndex {
         public int id;
         public String des;
 

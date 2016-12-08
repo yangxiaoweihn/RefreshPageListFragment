@@ -9,6 +9,7 @@ import android.view.View;
 import android.widget.ImageView;
 
 import ws.dyt.refresh.base.SingleFragmentActivity;
+import ws.dyt.refresh.coordilayout.CoordiLayoutFragment;
 import ws.dyt.refresh.main.MainTabFragment;
 
 
@@ -40,15 +41,14 @@ public class MainActivity extends AppCompatActivity {
 
 
     public void listTestOnClick(View view) {
-        Intent intent = new Intent(this, SingleFragmentActivity.class);
-        intent.putExtra(SingleFragmentActivity.CLASS_FRAGMENT, TestFragment.class.getName());
-        startActivity(intent);
+        SingleFragmentActivity.to(this, TestFragment.class, null);
     }
 
     public void libsTestOnClick(View view) {
-        Intent intent = new Intent(this, SingleFragmentActivity.class);
-        intent.putExtra(SingleFragmentActivity.CLASS_FRAGMENT, MainTabFragment.class.getName());
-        startActivity(intent);
+        SingleFragmentActivity.to(this, MainTabFragment.class, null);
     }
 
+    public void coordilayoutTestOnClick(View view) {
+        SingleFragmentActivity.to(this, CoordiLayoutFragment.class, null);
+    }
 }
