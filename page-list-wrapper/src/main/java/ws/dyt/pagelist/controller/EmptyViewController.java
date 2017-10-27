@@ -2,6 +2,12 @@ package ws.dyt.pagelist.controller;
 
 import android.graphics.drawable.AnimationDrawable;
 import android.graphics.drawable.Drawable;
+import android.support.annotation.DrawableRes;
+import android.support.annotation.StringRes;
+import android.support.v4.content.ContextCompat;
+import android.text.Html;
+import android.text.Spannable;
+import android.text.Spanned;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,7 +19,7 @@ import android.widget.TextView;
 import ws.dyt.pagelist.R;
 import ws.dyt.pagelist.config.EmptyStatusViewWrapper;
 import ws.dyt.pagelist.utils.ViewInject;
-import ws.dyt.view.adapter.core.base.BaseAdapter;
+import ws.dyt.adapter.adapter.core.base.BaseAdapter;
 
 /**
  * Created by yangxiaowei on 16/8/30.
@@ -28,9 +34,10 @@ public class EmptyViewController implements IRelease{
 
     private FrameLayout sectionEmptyView;
     private ImageView ivEmpty;
-    private TextView tvEmtpy;
+    private TextView tvEmpty;
+    private TextView tvRefresh;
 
-    public EmptyViewController(LayoutInflater inflater, View rootView, BaseAdapter adapter) {
+    public EmptyViewController(LayoutInflater inflater, final View rootView, BaseAdapter adapter) {
         this.adapter = adapter;
 
         this.emptyStatusViewWrapper = new EmptyStatusViewWrapper();
@@ -39,20 +46,25 @@ public class EmptyViewController implements IRelease{
         //加载空白页面布局及控件
         View emptyView = inflater.inflate(this.emptyStatusViewWrapper.LayoutResOfEmptyView, null, false);
         this.ivEmpty = ViewInject.findView(R.id.rll_empty_iv_id, emptyView);
-        this.tvEmtpy = ViewInject.findView(R.id.rll_empty_tv_id, emptyView);
+        this.tvEmpty = ViewInject.findView(R.id.rll_empty_tv_id, emptyView);
+        this.tvRefresh = ViewInject.findView(R.id.rll_empty_tv_refresh_id, emptyView);
 
         //初始化一些显示数据
-        if (this.emptyStatusViewWrapper.DrawableResOfEmpty > 0) {
-            this.ivEmpty.setImageResource(this.emptyStatusViewWrapper.DrawableResOfEmpty);
-        }
-        if (this.emptyStatusViewWrapper.TextResOfEmpty > 0) {
-            this.tvEmtpy.setText(this.emptyStatusViewWrapper.TextResOfEmpty);
-        }
+        this.handleEmptyImageView(this.emptyStatusViewWrapper.DrawableResOfEmpty);
+
+        this.handleEmptyTextView(this.emptyStatusViewWrapper.TextResOfEmpty);
 
         //添加空白页面
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.gravity = Gravity.CENTER;
         this.sectionEmptyView.addView(emptyView, lp);
+    }
+
+    private View.OnClickListener refreshClickListener;
+    public EmptyViewController setRefreshClickListener(View.OnClickListener listener) {
+
+        this.refreshClickListener = listener;
+        return this;
     }
 
     /**
@@ -63,8 +75,12 @@ public class EmptyViewController implements IRelease{
             return;
         }
 
-        this.tvEmtpy.setText(this.emptyStatusViewWrapper.TextResOfInitLoading);
-        this.ivEmpty.setImageResource(this.emptyStatusViewWrapper.DrawableResOfInitLoading);
+        this.handleEmptyTextView(this.emptyStatusViewWrapper.TextResOfInitLoading);
+
+        this.handleEmptyImageView(this.emptyStatusViewWrapper.DrawableResOfInitLoading);
+
+        this.tvRefresh.setVisibility(View.GONE);
+
         this.sectionEmptyView.setVisibility(this.emptyStatusViewWrapper.IsShowEmptyViewBeforeInitLoading ? View.VISIBLE : View.GONE);
 
         Drawable drawable = this.ivEmpty.getDrawable();
@@ -90,17 +106,35 @@ public class EmptyViewController implements IRelease{
             return;
         }
 
-        this.tvEmtpy.setText(this.emptyStatusViewWrapper.TextResOfException);
-        this.ivEmpty.setImageResource(this.emptyStatusViewWrapper.DrawableResOfException);
+        this.handleEmptyTextView(this.emptyStatusViewWrapper.TextResOfException);
+
+        this.handleEmptyImageView(this.emptyStatusViewWrapper.DrawableResOfException);
+
         this.sectionEmptyView.setVisibility(View.VISIBLE);
+
+        if (this.emptyStatusViewWrapper.IsShowRefreshViewWhenFailure) {
+            this.tvRefresh.setVisibility(View.VISIBLE);
+            this.tvRefresh.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (null != refreshClickListener) {
+                        refreshClickListener.onClick(v);
+                    }
+                }
+            });
+        }
     }
 
     /**
      * 无数据
      */
-    public void withNoneDatas() {
-        this.tvEmtpy.setText(this.emptyStatusViewWrapper.TextResOfEmpty);
-        this.ivEmpty.setImageResource(this.emptyStatusViewWrapper.DrawableResOfEmpty);
+    public void withNoneData() {
+        this.handleEmptyTextView(this.emptyStatusViewWrapper.TextResOfEmpty);
+
+        this.handleEmptyImageView(this.emptyStatusViewWrapper.DrawableResOfEmpty);
+
+        this.tvRefresh.setVisibility(View.GONE);
+
         this.sectionEmptyView.setVisibility(View.VISIBLE);
     }
 
@@ -125,6 +159,25 @@ public class EmptyViewController implements IRelease{
                 ad.stop();
             }
         }
+    }
+
+    private void handleEmptyImageView(@DrawableRes int resId) {
+        if (resId > 0) {
+            this.ivEmpty.setImageResource(resId);
+        }else {
+            this.ivEmpty.setImageDrawable(null);
+        }
+        this.ivEmpty.setVisibility(resId > 0 ? View.VISIBLE : View.GONE);
+    }
+
+    private void handleEmptyTextView(@StringRes int resId) {
+        this.tvEmpty.setText(this.getEmptyString(resId));
+        this.tvEmpty.setVisibility(resId > 0 ? View.VISIBLE : View.GONE);
+    }
+
+    private Spanned getEmptyString(@StringRes int resId) {
+
+        return Html.fromHtml(tvEmpty.getContext().getString(resId > 0 ? resId : R.string.rll_tips_null));
     }
 
     @Override

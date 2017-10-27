@@ -10,5 +10,5 @@ public interface IPageIndex {
      * 返回分页标识id
      * @return
      */
-    int getPageIndex();
+    long getPageIndex();
 }

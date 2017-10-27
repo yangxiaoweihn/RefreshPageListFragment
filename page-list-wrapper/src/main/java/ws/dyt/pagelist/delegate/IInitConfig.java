@@ -4,7 +4,7 @@ import android.support.v7.widget.RecyclerView;
 
 import java.util.List;
 
-import ws.dyt.view.adapter.core.base.BaseAdapter;
+import ws.dyt.adapter.adapter.core.base.BaseAdapter;
 
 
 /**
@@ -58,7 +58,7 @@ public interface IInitConfig<T_RESPONSE, T_ADAPTER> {
      *
      * @param pageIndex 上一页最后一条数据分页索引
      */
-    void sendRequest(int pageIndex);
+    void fetchData(long pageIndex);
 
     /**
      * 其他的一些ui操作

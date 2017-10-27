@@ -30,11 +30,13 @@ public class EmptyStatusViewWrapper {
 
     //网路异常时图标[无连接或者服务器状态非0,初始无数据时才会显示]
     @DrawableRes
-    public int DrawableResOfException;
+    public int DrawableResOfException = R.drawable.ic_network_lost;
     //网络异常时文字提示
     @StringRes
     public int TextResOfException = R.string.rll_tips_data_exception;
 
     //初始加载是是否显示无数据的空白页面
     public boolean IsShowEmptyViewBeforeInitLoading = false;
+
+    public boolean IsShowRefreshViewWhenFailure = true;
 }

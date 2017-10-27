@@ -9,7 +9,7 @@ import android.widget.TextView;
 import ws.dyt.pagelist.R;
 import ws.dyt.pagelist.config.LoadMoreStatusViewWrapper;
 import ws.dyt.pagelist.utils.ViewInject;
-import ws.dyt.view.adapter.core.base.BaseAdapter;
+import ws.dyt.adapter.adapter.core.base.BaseAdapter;
 
 /**
  * Created by yangxiaowei on 16/8/30.
@@ -41,6 +41,9 @@ public class LoadMoreStatusViewController implements IRelease{
      */
     private void initLoadMoreView() {
         this.footerView = inflater.inflate(this.loadMoreStatusViewWrapper.LayoutResOfLoadMoreStatusView, recyclerView, false);
+        if (loadMoreStatusViewWrapper.BackgroundColorOfLoadMoreStatusView >= 0) {
+            this.footerView.setBackgroundColor(loadMoreStatusViewWrapper.BackgroundColorOfLoadMoreStatusView);
+        }
         this.adapter.setSysFooterView(footerView);
         this.loadMoreProgressBar = ViewInject.findView(R.id.rll_load_more_progress_id, footerView);
         this.loadMoreTextView = ViewInject.findView(R.id.rll_load_more_tv_id, footerView);

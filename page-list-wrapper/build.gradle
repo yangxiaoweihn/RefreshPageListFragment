@@ -1,30 +1,70 @@
 apply plugin: 'com.android.library'
+apply from: "lib-aar.gradle"
 
 android {
-    compileSdkVersion 23
-    buildToolsVersion "23.0.3"
+    compileSdkVersion 25
+    buildToolsVersion "25.0.2"
 
     defaultConfig {
-        minSdkVersion 14
-        targetSdkVersion 23
+        minSdkVersion 9
         versionCode 1
         versionName "1.0"
     }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+
+            consumerProguardFile('proguard-rules-consumer.pro')
+
+            this.handleAar(android)
         }
     }
+
+    lintOptions {
+        abortOnError false
+    }
+
 }
 
+
+repositories {
+    maven {
+        url 'https://dl.bintray.com/yangxiaoweihn/maven'
+    }
+}
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     testCompile 'junit:junit:4.12'
-//    compile 'com.android.support:appcompat-v7:23.4.0'
-//    compile 'com.android.support:recyclerview-v7:23.4.0'
-//    compile 'com.android.support:support-v4:23.4.0'
-    compile 'ws.dyt.view:recyclerview-adapter-hf:2.4'
-//    compile project(':recyclerview-adapter-hf')
+//    compile 'ws.dyt.view:recyclerview-adapter-hf:2.6'
+    compile project(':SuperAdapter:recyclerview-adapter-hf')
 }
+
+
+ext {
+    bintrayRepo = 'maven'
+    bintrayName = 'page-list-wrapper'
+
+    publishedGroupId = "ws.dyt.view"
+    libraryName = 'PageListWrapper'
+    artifact = 'page-list-wrapper'
+
+    libraryDescription = "Based on android.support.v4.widget.SwipeRefreshLayout and ws.dyt.view:recyclerview-adapter-hf, support refresh and load more data"
+    siteUrl = "https://github.com/yangxiaoweihn/RefreshPageListFragment"
+    gitUrl = "https://github.com/yangxiaoweihn/RefreshPageListFragment.git"
+
+    libraryVersion = "${android.defaultConfig.versionName}"
+    developerId = 'yangxiaoweihn'
+    developerName = 'yangxiaowei'
+    developerEmail = 'hn_yangxiaowei@163.com'
+
+    licenseName = 'The Apache Software License, Version 2.0'
+    licenseUrl = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+    allLicenses = ["Apache-2.0"]
+
+}
+
+//apply from: "https://raw.githubusercontent.com/yangxiaoweihn/MavenPushScript/master/scrip/install.gradle"
+//apply from: "https://raw.githubusercontent.com/yangxiaoweihn/MavenPushScript/master/scrip/bintray.gradle"

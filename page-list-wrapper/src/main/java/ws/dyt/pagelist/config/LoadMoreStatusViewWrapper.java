@@ -16,6 +16,8 @@ public class LoadMoreStatusViewWrapper {
     //加载状态布局[作为recyclerview的footer]
     @LayoutRes
     public int LayoutResOfLoadMoreStatusView = R.layout.rll_view_loadmore_footer;
+    //加载状态布局背景色
+    public int BackgroundColorOfLoadMoreStatusView = -1;
     //加载状态提示信息[总共3种状态，必须]
     public String[] TextTipsOfLoadingStatus;
 

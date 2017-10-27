@@ -3,21 +3,42 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:gravity="center"
+    android:layout_gravity="center"
+    android:id="@id/rll_empty_root"
     xmlns:tools="http://schemas.android.com/tools"
     android:orientation="vertical">
 
     <ImageView
+        tools:src="@drawable/ic_network_lost"
         android:id="@id/rll_empty_iv_id"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        tools:layout_width="100dp"
+        tools:layout_height="100dp"
         />
     <TextView
         android:layout_marginTop="15dp"
-        tools:text="暂无更多数据"
+        android:text="暂无更多数据"
         android:id="@id/rll_empty_tv_id"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textSize="12sp"
         android:gravity="center"
-        android:textColor="#9b9b9b"/>
+        android:textColor="@color/rll_loading_textColor"/>
+    <TextView
+        android:visibility="gone"
+        tools:visibility="visible"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:paddingLeft="35dp"
+        android:paddingRight="35dp"
+        android:background="@drawable/rll_refresh_btn_selector"
+        android:layout_marginTop="30dp"
+        android:text="点击刷新"
+        android:id="@id/rll_empty_tv_refresh_id"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="15sp"
+        android:gravity="center"
+        android:textColor="#fff"/>
 </LinearLayout>

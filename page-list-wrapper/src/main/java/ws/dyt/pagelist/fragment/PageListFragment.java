@@ -3,6 +3,7 @@ package ws.dyt.pagelist.fragment;
 
 import android.os.Bundle;
 import android.support.annotation.CallSuper;
+import android.support.annotation.LayoutRes;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
@@ -10,8 +11,10 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +32,7 @@ import ws.dyt.pagelist.delegate.ResponseResultDelegate;
 import ws.dyt.pagelist.entity.IPageIndex;
 import ws.dyt.pagelist.fragment.lazy.LazyLoadFragment;
 import ws.dyt.pagelist.utils.ViewInject;
-import ws.dyt.view.adapter.core.base.BaseAdapter;
+import ws.dyt.adapter.adapter.core.base.BaseAdapter;
 
 
 /**
@@ -50,13 +53,16 @@ import ws.dyt.view.adapter.core.base.BaseAdapter;
  */
 abstract
 public class PageListFragment<T_RESPONSE extends IPageIndex, T_ADAPTER> extends LazyLoadFragment
-        implements IInitConfig<T_RESPONSE, T_ADAPTER>, ResponseResultDelegate<T_RESPONSE>, DataStatusDelegate, IOnConfigCallback {
+        implements IInitConfig<T_RESPONSE, T_ADAPTER>, ResponseResultDelegate<T_RESPONSE>, DataStatusDelegate<T_RESPONSE>, IOnConfigCallback {
 
     private static final String TAG = "lib_BaseListFragment";
 
+    protected LayoutInflater inflater;
+    protected Bundle savedInstanceState;
+    protected FrameLayout mSectionRootPoolFrameLayout;
     protected RecyclerView recyclerView;
     protected SwipeRefreshLayout refreshLayout;
-    private BaseAdapter<T_ADAPTER> adapter;
+    protected BaseAdapter<T_ADAPTER> adapter;
     protected View rootView;
 
     public void scrollToPosition(int position) {
@@ -98,13 +104,20 @@ public class PageListFragment<T_RESPONSE extends IPageIndex, T_ADAPTER> extends 
     public void onConfigLoadMoreStatusViewInfo(LoadMoreStatusViewWrapper wrapper) {}
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        this.rootView = inflater.inflate(R.layout.rll_fragment_recyclerview_refresh, container, false);
+    public View onLazyCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        this.inflater = inflater;
+        this.savedInstanceState = savedInstanceState;
+        this.rootView = this.onInflateView(inflater, container, savedInstanceState);
         this.recyclerView = ViewInject.findView(R.id.recyclerView, rootView);
         this.refreshLayout = ViewInject.findView(R.id.refreshLayout, rootView);
+        this.mSectionRootPoolFrameLayout = ViewInject.findView(R.id.section_root_pool, rootView);
 
         this.init(inflater);
         return rootView;
+    }
+
+    protected View onInflateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        return inflater.inflate(this.setContentView(), container, false);
     }
 
     private void init(LayoutInflater inflater) {
@@ -115,7 +128,24 @@ public class PageListFragment<T_RESPONSE extends IPageIndex, T_ADAPTER> extends 
         this.loadMoreStatusViewController = new LoadMoreStatusViewController(inflater, this.recyclerView, this.adapter);
         this.onConfigLoadMoreStatusViewInfo(this.loadMoreStatusViewController.getLoadMoreStatusViewWrapper());
 
-        this.emptyViewController = new EmptyViewController(inflater, this.rootView, adapter);
+        this.emptyViewController = new EmptyViewController(inflater, this.rootView, adapter).setRefreshClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onRefreshListener.onRefresh();
+            }
+        });
+
+        View rootContainer = this.rootView.findViewById(R.id.section_root_container);
+        if (null != rootContainer) {
+
+            rootContainer.setOnTouchListener(new View.OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    return recyclerView.onTouchEvent(event);
+                }
+            });
+        }
+
         this.onConfigEmptyStatusViewInfo(this.emptyViewController.getEmptyStatusViewWrapper());
 
         this.setUpView();
@@ -126,9 +156,14 @@ public class PageListFragment<T_RESPONSE extends IPageIndex, T_ADAPTER> extends 
         this.recyclerView.addOnScrollListener(onScrollListener);
     }
 
+    protected @LayoutRes int setContentView() {
+        return R.layout.rll_fragment_recyclerview_refresh;
+    }
+
     private SwipeRefreshLayout.OnRefreshListener onRefreshListener = new SwipeRefreshLayout.OnRefreshListener() {
         @Override
         public void onRefresh() {
+            emptyViewController.withRemoveEmptyView();
             PageListFragment.this.pullDown();
         }
     };
@@ -171,7 +206,7 @@ public class PageListFragment<T_RESPONSE extends IPageIndex, T_ADAPTER> extends 
     //标记是否为下拉刷新请求
     private boolean isPullDownRequesting = false;
     private void pullDown() {
-        Log.d("GGGGG", "pullDown()");
+        Log.d(TAG, "pullDown()");
         if (!isRequestEnd) {
             return;
         }
@@ -180,15 +215,18 @@ public class PageListFragment<T_RESPONSE extends IPageIndex, T_ADAPTER> extends 
 
         this.isPullDownRequesting = true;
         this.pageStartIndex = 0;
-        this.realDataCount = 0;
         this.isRequestEnd = false;
-        this.isAllDataDidLoad = false;
+        if (!supportPullDownLoadMore()) {
+
+            this.realDataCount = 0;
+            this.isAllDataDidLoad = false;
+        }
         this.loadMoreStatusViewController.withPullDown();
 
         //针对下拉第一页进行处理
         this.pageStartIndex = this.filterPageIndexOffset(this.realDataCount, this.pageStartIndex);
 
-        this.sendRequest(pageStartIndex);
+        this.fetchData(pageStartIndex);
     }
 
     private void pullUp() {
@@ -200,15 +238,17 @@ public class PageListFragment<T_RESPONSE extends IPageIndex, T_ADAPTER> extends 
 
         this.loadMoreStatusViewController.withPullUp();
 
-        this.sendRequest(pageStartIndex);
+        this.fetchData(pageStartIndex);
     }
 
     /**
      * 初次加载数据,或者强制刷新-都是重新获取数据
      */
-    @Override
     final
     protected void fetchData() {
+        if (null == refreshLayout) {
+            return;
+        }
         refreshLayout.post(new Runnable() {
             @Override
             public void run() {
@@ -223,7 +263,7 @@ public class PageListFragment<T_RESPONSE extends IPageIndex, T_ADAPTER> extends 
     private boolean isAllDataDidLoad = false;
 
     //分页索引id
-    private int pageStartIndex = 0;
+    private long pageStartIndex = 0;
 
     /**{@link ResponseResultDelegate}
      * ---------------------------------------------------------------------------*/
@@ -232,8 +272,13 @@ public class PageListFragment<T_RESPONSE extends IPageIndex, T_ADAPTER> extends 
     public void setOnSuccessPath(ResponseResultWrapper<T_RESPONSE> result) {
         Log.e(TAG, "setOnSuccessPath");
         this.isRequestEnd = true;
+
+        this.onSuccessResponsePre(null == result ? null : result.Data);
+
         this.setOnSuccessPath_(result);
         this.isPullDownRequesting = false;
+
+        this.onSuccessResponseEnd();
     }
 
     @Override
@@ -241,8 +286,32 @@ public class PageListFragment<T_RESPONSE extends IPageIndex, T_ADAPTER> extends 
     public void setOnFailurePath(){
         Log.e(TAG, "setOnFailurePath");
         this.isRequestEnd = true;
+        this.onFailureResponsePre();
+
         this.setOnFailurePath_();
         this.isPullDownRequesting = false;
+
+        this.onFailureResponseEnd();
+    }
+
+    @Override
+    public void onSuccessResponsePre(List<T_RESPONSE> data) {}
+
+    @Override
+    public void onSuccessResponseEnd() {}
+
+    @Override
+    public void onFailureResponsePre() {}
+
+    @Override
+    public void onFailureResponseEnd() {}
+
+    /**
+     * 下拉是否支持加载更多
+     * @return
+     */
+    protected boolean supportPullDownLoadMore() {
+        return false;
     }
     /**---------------------------------------------------------------------------*/
 
@@ -254,9 +323,9 @@ public class PageListFragment<T_RESPONSE extends IPageIndex, T_ADAPTER> extends 
             return;
         }
 
-        final List<T_RESPONSE> datas = null == result.Data ? new ArrayList<T_RESPONSE>() : result.Data;
-        final int count = datas.size();
-        final int empIndexId = count == 0 ? 0 : datas.get(count - 1).getPageIndex();
+        final List<T_RESPONSE> data = null == result.Data ? new ArrayList<T_RESPONSE>() : result.Data;
+        final int count = data.size();
+        final long empIndexId = count == 0 ? 0 : data.get(count - 1).getPageIndex();
         this.realDataCount += count;
 
         //下拉刷新后且获取到数据, 此时清除旧数据
@@ -266,12 +335,14 @@ public class PageListFragment<T_RESPONSE extends IPageIndex, T_ADAPTER> extends 
         }
 
         int dataSize = adapter.getDataSectionItemCount();
+        boolean isSupportPullDown = supportPullDownLoadMore();
+//        boolean isNew = isSupportPullDown  && isOperationIsPullDown;
         //列表无数据且未获取到数据，此时认为无数据
         if (0 == dataSize && 0 == count) {
             this.isAllDataDidLoad = true;
             this.loadMoreStatusViewController.withRemoveLoadStatusView();
 
-            this.emptyViewController.withNoneDatas();
+            this.emptyViewController.withNoneData();
             this.onNoneData();
         }else {
             //有数据，需要判断数据是否已全部加载完毕
@@ -291,7 +362,7 @@ public class PageListFragment<T_RESPONSE extends IPageIndex, T_ADAPTER> extends 
             }else {
                 this.loadMoreStatusViewController.withResetStatus();
             }
-            this.adapter.addAll(this.flatMap(datas));
+            this.adapter.addAll(this.flatMap(data));
         }
 
         this.pageStartIndex = this.filterPageIndexOffset(this.realDataCount, empIndexId);
@@ -314,7 +385,7 @@ public class PageListFragment<T_RESPONSE extends IPageIndex, T_ADAPTER> extends 
      * @param lastItemPageIndexId   从数据源获取的当前页最后一项分页id
      * @return
      */
-    private int filterPageIndexOffset(int realDataCount, int lastItemPageIndexId) {
+    private long filterPageIndexOffset(long realDataCount, long lastItemPageIndexId) {
         realDataCount = this.filterPageIndexOffset(realDataCount);
         return -1 == realDataCount ? lastItemPageIndexId : realDataCount;
     }
@@ -325,7 +396,7 @@ public class PageListFragment<T_RESPONSE extends IPageIndex, T_ADAPTER> extends 
      * @param realDataCount
      * @return
      */
-    protected int filterPageIndexOffset(int realDataCount) {
+    protected long filterPageIndexOffset(long realDataCount) {
         //比如通过页码分页可以这么写(分页从1...n)
         //return realDataCount / setPageSize() + 1;
         return -1;
@@ -354,6 +425,99 @@ public class PageListFragment<T_RESPONSE extends IPageIndex, T_ADAPTER> extends 
         Log.e(TAG, "onAllDataDidLoad()");
     }
     /**---------------------------------------------------------------------------*/
+
+    public void remove(int index) {
+        if (index >= 0 && null != adapter && !adapter.isEmptyOfData()) {
+            adapter.remove(index);
+
+            this.emptyDataCheck();
+        }
+    }
+
+    public void remove(T_ADAPTER item) {
+        if (null != item && null != adapter && !adapter.isEmptyOfData()) {
+            adapter.remove(item);
+
+            this.emptyDataCheck();
+        }
+    }
+
+    public void remove(List<T_ADAPTER> items) {
+
+        if (null != items && !items.isEmpty() && !adapter.isEmptyOfData()) {
+            if (1 == items.size()) {
+
+                remove(items.get(0));
+            }else {
+
+                adapter.removeAll(items);
+
+                this.emptyDataCheck();
+            }
+        }
+    }
+
+    public void add(int index, T_ADAPTER item) {
+
+        if (index >= 0 && null != item && null != adapter) {
+
+            adapter.add(index, item);
+            if (adapter.getDataSectionItemCount() == 1) {
+
+                this.emptyViewController.withRemoveEmptyView();
+
+            }
+        }
+    }
+
+    private void emptyDataCheck() {
+        final int count = adapter.getDataSectionItemCount();
+        if (0 == count) {
+            setOnSuccessPath(new ResponseResultWrapper(0, "", null));
+        }
+    }
+
+
+    private boolean check() {
+        if (isRemoving() || isDetached() || null == recyclerView) {
+            return false;
+        }
+        if (isRequestIng()) {
+            return false;
+        }
+        return true;
+    }
+
+    public void toListTop() {
+        if (!check()) {
+            return;
+        }
+        recyclerView.scrollToPosition(0);//.smoothScrollToPosition(0);
+    }
+
+    public void toRefresh() {
+        if (!check()) {
+            return;
+        }
+        fetchData(0);
+    }
+
+    public void toListTopAndRefresh() {
+        this.toListTop();
+        this.toRefresh();
+    }
+
+    public void toListTopOrRefresh() {
+
+    }
+
+    @Override
+    @CallSuper
+    protected void onFragVisibilityChanged(boolean visible) {
+        if (visible && null != adapter && adapter.isEmptyOfData()) {
+            fetchData();
+        }
+    }
 
     @Override
     public void onDestroyView() {

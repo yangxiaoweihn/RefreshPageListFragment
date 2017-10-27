@@ -7,7 +7,7 @@ import android.view.View;
  */
 public class ViewInject {
 
-    public static  <V extends View> V findView(int id, View parent) {
+    public static <V extends View> V findView(int id, View parent) {
         if (null == parent) {
             return null;
         }

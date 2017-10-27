@@ -6,6 +6,8 @@
     <item name="rll_load_more_progress_id" type="id" />
 
     <!-- 空白页面控件id -->
+    <item name="rll_empty_root" type="id" />
     <item name="rll_empty_iv_id" type="id" />
     <item name="rll_empty_tv_id" type="id" />
+    <item name="rll_empty_tv_refresh_id" type="id" />
 </resources>
