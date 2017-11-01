@@ -64,4 +64,11 @@ public interface IInitConfig<T_RESPONSE, T_ADAPTER> {
      * 其他的一些ui操作
      */
     void setUpView();
+
+    /**
+     * 拦截下拉、上拉操作，重写该方法可以控制拉动作的表现形式以及之后的网络请求
+     * @param pullDown true: down  false: up
+     * @return  true: 拦截处理，不执行之后操作
+     */
+    boolean interceptPullOperation(boolean pullDown);
 }

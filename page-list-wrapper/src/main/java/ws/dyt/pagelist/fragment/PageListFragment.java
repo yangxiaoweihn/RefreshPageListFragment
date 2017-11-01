@@ -104,6 +104,11 @@ public class PageListFragment<T_RESPONSE extends IPageIndex, T_ADAPTER> extends 
     public void onConfigLoadMoreStatusViewInfo(LoadMoreStatusViewWrapper wrapper) {}
 
     @Override
+    public boolean interceptPullOperation(boolean pullDown) {
+        return false;
+    }
+
+    @Override
     public View onLazyCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         this.inflater = inflater;
         this.savedInstanceState = savedInstanceState;
@@ -208,6 +213,11 @@ public class PageListFragment<T_RESPONSE extends IPageIndex, T_ADAPTER> extends 
     private void pullDown() {
         Log.d(TAG, "pullDown()");
         if (!isRequestEnd) {
+            this.refreshLayout.setRefreshing(false);
+            return;
+        }
+        if (this.interceptPullOperation(true)) {
+            this.refreshLayout.setRefreshing(false);
             return;
         }
         this.refreshLayout.setRefreshing(true);
@@ -230,10 +240,13 @@ public class PageListFragment<T_RESPONSE extends IPageIndex, T_ADAPTER> extends 
     }
 
     private void pullUp() {
+        Log.d(TAG, "pullUp()");
         if (isAllDataDidLoad || !isRequestEnd) {
             return;
         }
-        Log.d(TAG, "pullUp()");
+        if (this.interceptPullOperation(false)) {
+            return;
+        }
         this.isRequestEnd = false;
 
         this.loadMoreStatusViewController.withPullUp();
